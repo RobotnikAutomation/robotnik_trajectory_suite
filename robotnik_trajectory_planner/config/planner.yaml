@@ -1,0 +1,8 @@
+robot_group: arm
+move_groups: [arm]
+follow_joint_trajectory_topic: /rt_traj_exe/follow_joint_trajectory
+control_state_topic: /rt_traj_exe/state
+control_state_actions_service: /rt_traj_exe/actions
+load_trajectory_service_name: /rt_traj_manager/load_state
+# ID to send to the trajectory_manager
+init_position_id: init_position

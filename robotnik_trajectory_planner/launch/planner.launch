@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+	<!--include file="$(find powerball_moveit_config_2)/launch/planning_context.launch">
+		<arg name="load_robot_description" value="false"/>
+	</include>
+	<include file="$(find powerball_moveit_config_2)/launch/move_group.launch">
+    		<arg name="allow_trajectory_execution" value="true"/>
+  	</include-->
+
+	<node name="rt_traj_planner" pkg="robotnik_trajectory_planner" type="robotnik_trajectory_planner_node" output="screen">
+		<rosparam command="load" file="$(find terabot_moveit_config)/config/kinematics.yaml"/>
+		<rosparam command="load" file="$(find robotnik_trajectory_planner)/config/planner.yaml"/>
+	</node>
+
+</launch>
+
