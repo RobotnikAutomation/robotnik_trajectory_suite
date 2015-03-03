@@ -1,0 +1,58 @@
+# This config file is for the PS3 pad
+# Config params for the torso pad
+topic_planner_state: /rt_traj_planner/state
+cmd_topic_cartesian: /rt_traj_planner/commands/cartesian_euler
+cmd_topic_jointbyjoint: /rt_traj_planner/commands/joint_by_joint
+srv_select_group: /rt_traj_planner/select_group
+srv_set_mode: /rt_traj_planner/set_control_mode
+srv_get_joints_group: /rt_traj_planner/get_joints_group
+# ROS param to get the available control groups
+param_groups: /rt_traj_planner/move_groups
+bhand_actions_service_name: /bhand_node/actions
+wsg50_grasp_service_name: /wsg_50/grasp
+wsg50_release_service_name: /wsg_50/release
+
+desired_freq: 10.0
+
+# PLATFORM-SKID-MODE
+# m/s
+max_axis_velocity: 0.1
+# rad/s
+max_joint_velocity: 0.1
+
+# AXIS CONFIG
+axis_x: 1
+axis_y: 0
+axis_z: 3
+axis_pitch: 1
+axis_yaw: 0
+axis_roll: 2
+axis_move_joint: 1
+
+# GENERAL
+button_speed_up: 12
+button_speed_down: 14
+button_dead_man: 11
+button_euler_mode: 9
+button_change_group_right: 5
+button_change_group_left: 7
+button_increase_joint: 4
+button_decrease_joint: 6
+
+button_control_bhand: 10
+button_control_bhand_grasp: 13
+button_control_bhand_release: 15
+button_control_bhand_mode1: 12
+button_control_bhand_mode2: 14
+
+button_control_wsg50: 8
+button_control_wsg50_grasp: 13
+button_control_wsg50_release: 15
+
+
+# Position / Velocity
+button_set_control_mode: 0
+# Cartesian / Joint by Joint
+button_set_control_type: 3
+
+
