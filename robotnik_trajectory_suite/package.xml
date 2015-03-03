@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package>
+  <name>robotnik_trajectory_suite</name>
+  <version>1.0.0</version>
+  <description>The robotnik_trajectory_suite package</description>
+
+ 
+  <maintainer email="rnavarro@robotnik.es">Román Navarro</maintainer>
+  <maintainer email="rguzman@robotnik.es">Roberto Guzmán</maintainer>
+
+  <license>BSD</license>
+
+  <!-- <url type="website">http://wiki.ros.org/terabot_control</url> -->
+
+
+  <author email="rnavarro@robotnik.es">Román Navarro</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  
+  <run_depend>robotnik_trajectory_control</run_depend>
+  <run_depend>robotnik_trajectory_planner</run_depend>
+  <run_depend>robotnik_trajectory_manager</run_depend>
+  <run_depend>robotnik_trajectory_pad</run_depend>
+
+  <export><metapackage/></export>
+
+</package>
