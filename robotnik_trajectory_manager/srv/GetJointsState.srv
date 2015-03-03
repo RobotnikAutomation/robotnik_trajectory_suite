@@ -1,0 +1,6 @@
+# Get the values of a saved point
+string id
+---
+bool ret
+string[] joints
+float32[] values

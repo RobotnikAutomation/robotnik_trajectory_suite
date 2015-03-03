@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!-- Launch for the trajectory simulation -->
+<launch>
+	<!-- Combine joint values -->
+	<node name="rt_traj_manager" pkg="robotnik_trajectory_manager" type="rt_traj_manager.py" output="screen">
+		<!-- Configuration of every interface -->
+    		<rosparam command="load" file="$(find robotnik_trajectory_manager)/config/manager.yaml" />
+	</node>
+</launch> 

@@ -1,0 +1,4 @@
+# ID of the state to load and execute
+string id
+---
+bool ret

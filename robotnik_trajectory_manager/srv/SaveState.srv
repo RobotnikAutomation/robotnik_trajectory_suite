@@ -1,0 +1,7 @@
+# It possible to save the state of the complete robot or only for a singular group of joints (defined in MoveIt)
+# If group_name is '', it'll save the complete state
+string group_name
+# ID to save the state
+string id
+---
+bool ret

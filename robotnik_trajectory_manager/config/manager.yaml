@@ -1,0 +1,6 @@
+# Topic to get planner state
+planner_topic_state: /rt_traj_planner/state
+# File where the positions will be loaded and saved
+states_file: robot_state_positions.yaml
+# Topic to send the trajectories
+planner_topic_command: rt_traj_planner/commands/trajectory
