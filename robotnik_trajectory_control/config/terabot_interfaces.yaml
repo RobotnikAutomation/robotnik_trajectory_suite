@@ -1,0 +1,8 @@
+
+
+# Groups for FollowJointTrajectories
+groups: { 
+ arm: { name: arm, type: standard, joints: [terabot_1_joint, terabot_2_joint, terabot_5_joint, terabot_8_joint, terabot_9_joint], command_topic: /terabot/command}
+}
+
+
