@@ -74,6 +74,7 @@ add_executable(robotnik_trajectory_planner_node src/rt_traj_planner.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(robotnik_trajectory_planner_node robotnik_msgs_generate_messages_cpp)
+add_dependencies(robotnik_trajectory_planner_node robotnik_trajectory_planner_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(robotnik_trajectory_planner_node
