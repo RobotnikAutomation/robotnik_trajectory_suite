@@ -1,0 +1,14 @@
+# Config file for the gripper WSG50 simulated in Gazebo
+
+# All the accepted models
+gripper_models: [ rb1_gripper1, wsg50_gripper_gazebo ] 
+
+name: wsg50_gripper
+model: wsg50_gripper_gazebo
+joints: [wsg50_finger_1_start_joint, wsg50_finger_2_start_joint]
+min_opening: 0.0
+max_opening: 0.114
+f1_command_topic: /crom/jg1_position_controller/command
+f2_command_topic: /crom/jg2_position_controller/command
+
+

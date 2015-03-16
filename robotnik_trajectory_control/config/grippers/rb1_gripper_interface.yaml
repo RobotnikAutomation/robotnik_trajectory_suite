@@ -1,5 +1,5 @@
 # All the accepted models
-gripper_models: [ rb1_gripper1 ] 
+gripper_models: [ rb1_gripper1, wsg50_gripper_gazebo ] 
 
 name: rb1_gripper_1
 model: rb1_gripper1

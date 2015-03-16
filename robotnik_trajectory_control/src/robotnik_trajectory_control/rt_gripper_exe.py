@@ -42,6 +42,7 @@ from control_msgs.msg import *
 from actionlib_msgs.msg import *
 
 from gripper_interfaces.rb1_gripper_interface import *
+from gripper_interfaces.wsg50_gripper_gazebo import *
 
 
 WAITING_STATE = -1
@@ -70,6 +71,8 @@ class GripperCommandActionController:
 		## AVAILABLE MODELS
 		if self.model == 'rb1_gripper1':
 			self.gripper = Rb1GripperInterface(self.joints, self.action_service_client)
+		elif self.model == 'wsg50_gripper_gazebo':
+			self.gripper = Wsg50GripperGazeboInterface(self.joints	)
 		else:
 			rospy.logerr('%s: Gripper model %s does not exist'%(rospy.get_name(), self.model))
 			exit()
