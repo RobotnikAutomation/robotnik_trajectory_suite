@@ -6,3 +6,5 @@ control_state_actions_service: /rt_traj_exe/actions
 load_trajectory_service_name: /rt_traj_manager/load_state
 # ID to send to the trajectory_manager
 init_position_id: init_position
+# radians
+min_joint_position_inc: 0.00001

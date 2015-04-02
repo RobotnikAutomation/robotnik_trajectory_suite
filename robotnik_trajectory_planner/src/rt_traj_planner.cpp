@@ -786,8 +786,9 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 	double dx = 0.0, dy = 0.0, dz = 0.0, dpitch = 0.0, droll = 0.0, dyaw = 0.0;
 	bool found_ik = false;
 	double dist = 0.0;
-	static double dt = (1.0/desired_freq);
+	static double dt = (1.0/real_freq);
 	double max_diff = 0.0;
+	double inc_joint = 0.0;
 	
 	if((ros::Time::now() - joint_by_joint_msg.t).toSec() <= WATCHDOG_COMMAND){
 			
@@ -804,7 +805,7 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 		
 		// Gets current joint values from move_group interface
 		robot_joint_values = move_group_robot->getCurrentJointValues();
-		current_joint_values = current_move_group->mg->getCurrentJointValues();
+		//current_joint_values = current_move_group->mg->getCurrentJointValues();
 		current_group_joints = current_move_group->joint_names;
 		//ROS_INFO("sendJointByJointVelocity: %d indexes for group %s ", current_joint_values.size(), current_move_group->name_group.c_str());
 		
@@ -812,12 +813,13 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 		
 		//aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->getVariableValues(current_joint_values);
 		//current_joint_values = current_move_group->mg->getCurrentJointValues();
-		/*const std::vector<int> current_joint_indexes = groups2joint_model_group[current_move_group->name_group]->getVariableIndexList();
+		
+		const std::vector<int> current_joint_indexes = groups2joint_model_group[current_move_group->name_group]->getVariableIndexList();
 		const double * current_joint_positions = aux_kinematic_state->getVariablePositions();
 		
 		for(int i = 0; i < current_joint_indexes.size(); i++){
 			current_joint_values.push_back(current_joint_positions[current_joint_indexes[i]]);
-		}*/
+		}
 		
 		
 		std::vector<double> velocities(current_joint_values.size());
@@ -827,10 +829,26 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 			
 			for(int32_t j = 0; j < joint_by_joint_msg.msg.joints.size(); j++){
 				if(current_group_joints[i].compare(joint_by_joint_msg.msg.joints[j]) == 0){
-					current_joint_values[i] += dt*joint_by_joint_msg.msg.values[j];
-					velocities[i] = joint_by_joint_msg.msg.values[j];
+					inc_joint = dt*joint_by_joint_msg.msg.values[j];
+					//ROS_INFO("%s::sendJointByJointVelocity: joint %s min inc %.3lf", component_name.c_str(), current_group_joints[i].c_str(), inc_joint);
+					// Checking the min joint increment
+					if(inc_joint != 0.0){
+						if(inc_joint < 0.0 and inc_joint > -min_joint_position_inc_){
+							inc_joint = -min_joint_position_inc_;
+							//ROS_INFO("%s::sendJointByJointVelocity: joint %s min inc %.3lf", component_name.c_str(), current_group_joints[i].c_str(), inc_joint);
+						}else if(inc_joint > 0.0 and inc_joint < min_joint_position_inc_){
+							inc_joint = min_joint_position_inc_;
+							//ROS_INFO("%s::sendJointByJointVelocity: joint %s min inc %.3lf", component_name.c_str(), current_group_joints[i].c_str(), inc_joint);
+						}			
+					}
+					current_joint_values[i] += inc_joint;
+					//velocities[i] = joint_by_joint_msg.msg.values[j];
+					if(joint_by_joint_msg.msg.values[j] < 0)
+						velocities[i] = -0.1;
+					else if(joint_by_joint_msg.msg.values[j] > 0)
+						velocities[i] = 0.1;
 					
-					//ROS_INFO("%s::sendJointByJointVelocity: Setting joint %s to %.3lf", component_name.c_str(), current_group_joints[i].c_str(), current_joint_values[i]);
+					ROS_INFO("%s::sendJointByJointVelocity: Setting joint %s to %.3lf (inc = %.3lf) to %.3lf rads/s", component_name.c_str(), current_group_joints[i].c_str(), current_joint_values[i], inc_joint, velocities[i]);
 					break;
 				}
 			}					
@@ -1567,6 +1585,7 @@ int RtTrajPlanner::rosSetup(){
 	pnh.param<std::string>("control_state_topic", control_state_topic_name, "/rt_traj_exe/state");
 	pnh.param<std::string>("control_state_actions_service", control_state_actions_service_name, "/rt_traj_exe/actions");
 	pnh.param<std::string>("load_trajectory_service", load_trajectory_service_name, "/rt_traj_manager/load_state");
+	pnh.param<double>("min_joint_position_inc", min_joint_position_inc_, MIN_JOINT_POSITION_INC);
 	//pnh.param<std::string>("init_position_id", init_position_id, "init_position");
 	
 	XmlRpc::XmlRpcValue list;

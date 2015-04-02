@@ -92,7 +92,8 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 #define MAX_JOINT_VEL_JOINTBYJOINT	0.2 // Max joint velocity allowed
 #define MAX_LINEAR_VEL				0.015 // m/s
 #define MAX_JOINT_VEL_2				1.0 // rad/s
-#define DESIRED_MAX_JOINT_VEL		0.1
+#define DESIRED_MAX_JOINT_VEL		0.1	// MAx joint velocity allowed
+#define MIN_JOINT_POSITION_INC		0.01 // Min resolution accepted by the arm
 
 //! Defines return values for methods and functions
 enum ReturnValue{
@@ -210,6 +211,8 @@ class RtTrajPlanner{
 		bool goal_active;
 		//! Flag to save the request of initialization
 		bool initialization_request;
+		//! Min joint increment(resolution) accepted by the arm controller
+		double min_joint_position_inc_;
 
 		
 		// PUBLISHERS
