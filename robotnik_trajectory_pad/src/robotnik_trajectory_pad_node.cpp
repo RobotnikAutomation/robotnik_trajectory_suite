@@ -71,6 +71,7 @@
 #define DEFAULT_SCALE_LINEAR		1.0
 #define DEFAULT_SCALE_ANGULAR		1.0
 
+#define MAX_GRIPPER_VEL				100
 
 #define DEFAULT_JOY			"/joy"
 
@@ -191,6 +192,8 @@ private:
 	ros::Publisher jointbyjoint_pub_;
 	//! Topic to publish the state
 	ros::Publisher state_pub_;
+	//! Topic to move the gripper
+	ros::Publisher gripper_pub_;
 	//! Name of the topic to publish
 	string cmd_topic_cartesian;
 	string cmd_topic_jointbyjoint;
@@ -212,6 +215,7 @@ private:
 	string bhand_actions_service_name_;
 	string wsg50_grasp_service_name_;
 	string wsg50_release_service_name_;
+	string terabot_gripper_topic_name_;
 	//! Name of the param to get the available groups to control
 	string param_groups_name_;
 	
@@ -247,6 +251,7 @@ private:
 	 button_set_control_type_, button_increase_joint_, button_decrease_joint_;
 	int button_control_bhand_, button_control_bhand_grasp_, button_control_bhand_release_, button_control_bhand_mode1_, button_control_bhand_mode2_;
 	int button_control_wsg50_, button_control_wsg50_grasp_, button_control_wsg50_release_;
+	int button_control_terabot_grasp_, button_control_terabot_release_;
 	
 	//! Number of the button for increase or decrease the speed max of the joystick	
 	int button_speed_up_, button_speed_down_;
@@ -320,6 +325,8 @@ RobotnikTrajectoryPad::RobotnikTrajectoryPad():
 	pnh_.param("button_control_wsg50", button_control_wsg50_, button_control_wsg50_); 
 	pnh_.param("button_control_wsg50_grasp", button_control_wsg50_grasp_, button_control_wsg50_grasp_); 
 	pnh_.param("button_control_wsg50_release", button_control_wsg50_release_, button_control_wsg50_release_); 
+	pnh_.param("button_control_terabot_grasp", button_control_terabot_grasp_, button_control_terabot_grasp_); 
+	pnh_.param("button_control_terabot_release", button_control_terabot_release_, button_control_terabot_release_); 
 	
 	pnh_.param("axis_x", axis_x, axis_x); 
 	pnh_.param("axis_y", axis_y, axis_y); 
@@ -343,6 +350,7 @@ RobotnikTrajectoryPad::RobotnikTrajectoryPad():
 	pnh_.param("bhand_actions_service_name", bhand_actions_service_name_, string("/bhand_node/actions"));
 	pnh_.param("wsg50_grasp_service_name", wsg50_grasp_service_name_, string("/wsg_50/grasp"));
 	pnh_.param("wsg50_release_service_name", wsg50_release_service_name_, string("/wsg_50/release"));
+	pnh_.param("terabot_gripper_topic_name", terabot_gripper_topic_name_, string("/terabot/gripper"));
 	//pnh_.param("topic_planner_state", topic_planner_state_, std::string("/rt_traj_planner/state"));
 	
 	
@@ -379,6 +387,7 @@ RobotnikTrajectoryPad::RobotnikTrajectoryPad():
   	// Publish through the node handle Twist type messages to the guardian_controller/command topic
   	this->cartesian_pub_ = pnh_.advertise<robotnik_trajectory_planner::CartesianEuler>(this->cmd_topic_cartesian, 1);
   	this->jointbyjoint_pub_ = pnh_.advertise<robotnik_trajectory_planner::JointByJoint>(this->cmd_topic_jointbyjoint, 1);
+  	this->gripper_pub_ = pnh_.advertise<std_msgs::Int32>(this->terabot_gripper_topic_name_, 1);
 	
 	//
 	// Publishes the state
@@ -573,7 +582,15 @@ void RobotnikTrajectoryPad::ControlLoop(){
 				}		
 				
 				
-				
+				if(vButtons[button_control_terabot_grasp_].IsPressed()){
+					std_msgs::Int32 griper_msg;
+					griper_msg.data = int(current_speed_lvl * MAX_GRIPPER_VEL);
+					gripper_pub_.publish(griper_msg);
+				}else if(vButtons[button_control_terabot_release_].IsPressed()){
+					std_msgs::Int32 griper_msg;
+					griper_msg.data = -int(current_speed_lvl * MAX_GRIPPER_VEL);
+					gripper_pub_.publish(griper_msg);
+				}
 				
 				// BHAND
 				// Deadman for bhand
