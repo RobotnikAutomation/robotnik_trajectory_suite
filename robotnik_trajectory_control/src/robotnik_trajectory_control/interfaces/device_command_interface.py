@@ -10,6 +10,13 @@ from std_srvs.srv import Empty
 
 import time
 
+from copy import deepcopy
+
+# Types of control (Position, velocity, position&velocity)
+CONTROL_POSITION=1
+CONTROL_VELOCITY=2
+CONTROL_POSITION_VELOCITY=3
+
 #
 # STANDARD INTERFACE
 #
@@ -57,7 +64,14 @@ class DeviceCommandInterface():
 		else:
 			self.joint_names = []
 			rospy.logerr('%s:init: param joints not found'%self.type)
-				
+		
+		if args.has_key('control_mode'):
+			self.setControlMode(args['control_mode'])
+		else:
+			self.setControlMode('')
+			rospy.logerr('%s:init: param control_mode not found'%self.type)
+		
+		
 		self.joint_state = JointState()
 		# Intermediate structure to save each pos, vel and effort value before sending the command to the component
 		# Ej.: {'j1': [ 0, 0, 0 ]}
@@ -143,6 +157,7 @@ class DeviceCommandInterface():
 		
 		return 0
 		
+		
 	def sendCommand(self):
 		'''
 			Sends the current value of joint_state attribute to the controller
@@ -156,11 +171,17 @@ class DeviceCommandInterface():
 			self.joint_state.position[i] = self.joint_state_pointer[self.joint_names[i]][0]
 			self.joint_state.velocity[i] = self.joint_state_pointer[self.joint_names[i]][1]
 			self.joint_state.effort[i] = self.joint_state_pointer[self.joint_names[i]][2]
+		
+		joint_state = deepcopy(self.joint_state)
+		
+		if self.control_mode == CONTROL_POSITION:
+			joint_state.velocity = []
+		elif self.control_mode == CONTROL_VELOCITY:
+			joint_state.position = []
 			
-		#self.joint_state.position=[]	
 		self.joint_state.header.stamp = rospy.Time.now()
 		#rospy.loginfo('%s-%s:sendCommand: sending command (pos = %s) to %s'%(self.type, self.name, self.joint_state.position, self.command_topic))	
-		self.command_publisher.publish(self.joint_state)
+		self.command_publisher.publish(joint_state)
 		
 		return 0
 		
@@ -172,6 +193,7 @@ class DeviceCommandInterface():
 		'''
 		
 		return self.state 
+		
 		
 	def stop(self):
 		'''
@@ -185,6 +207,7 @@ class DeviceCommandInterface():
 		self.sendCommand()
 		
 		return 0
+		
 		
 	def receiveStateCb(self, msg):
 		'''
@@ -213,10 +236,25 @@ class DeviceCommandInterface():
 		'''
 		self.state = State.READY_STATE
 
+
 	def recover(self):
 		'''
 			Recovers the component
 		'''
 		pass
+		
 
-
+	def setControlMode(self, mode):
+		'''
+			Processes and set the control mode of the interface
+			@param mode as string (position, velocity, postion_velocity)
+		'''
+		if mode == 'position':
+			self.control_mode = CONTROL_POSITION
+		elif mode == 'velocity':
+			self.control_mode = CONTROL_VELOCITY
+		elif mode == 'position_velocity':
+			self.control_mode = CONTROL_POSITION_VELOCITY
+		else:
+			self.control_mode = CONTROL_POSITION_VELOCITY
+		
