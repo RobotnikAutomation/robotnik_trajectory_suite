@@ -43,6 +43,8 @@ RtTrajPlanner::RtTrajPlanner(double hz, ros::NodeHandle h):nh(h), pnh("~"), desi
 		desired_freq = DEFAULT_THREAD_DESIRED_HZ;
 	
 	state = robotnik_msgs::State::INIT_STATE;
+	
+	
 	// Realizar para cada una de las clases derivadas
 	component_name.assign("RtTrajPlanner");
 	
