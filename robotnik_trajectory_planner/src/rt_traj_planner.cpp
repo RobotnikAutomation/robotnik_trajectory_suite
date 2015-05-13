@@ -3,7 +3,7 @@
  *	\author Robotnik Automation S.L.L
  *	\version 1.0.0
  *	\date 2015
- *  \brief Class to plan and control trajectories
+ *  \brief Class to plan and control trajectories the RB1 robot
  * 
 	Software License Agreement (BSD License)
 	
@@ -305,7 +305,9 @@ void RtTrajPlanner::standbyState(){
 			//aux_kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(move_group_robot->getCurrentJointValues());
 			
 			//joint_model_group->setVariableValues(move_group_robot->getCurrentJointValues());
-			aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], move_group_robot->getCurrentJointValues());
+			aux_kinematic_state->setJointGroupPositions(joint_robot_model_group, move_group_robot->getCurrentJointValues());
+			//aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], current_move_group->mg->getCurrentJointValues());
+			
 		}
 		switchToState(robotnik_msgs::State::READY_STATE);
 	}
@@ -316,8 +318,9 @@ void RtTrajPlanner::standbyState(){
 		control_type = CARTESIAN_EULER;
 		if(control_mode == VELOCITY){
 			// Updates auxiliar kinematic state before switching to ready
-			//aux_kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(move_group_robot->getCurrentJointValues());
-			aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], move_group_robot->getCurrentJointValues());
+			
+			aux_kinematic_state->setJointGroupPositions(joint_robot_model_group, move_group_robot->getCurrentJointValues());
+			//aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], current_move_group->mg->getCurrentJointValues());
 		}
 		switchToState(robotnik_msgs::State::READY_STATE);
 	}
@@ -344,6 +347,7 @@ void RtTrajPlanner::readyState(){
 		// CONTROL POSITION
 		if(control_mode == POSITION){
 			sendCartesianEulerPosition();
+			
 			
 		}else{
 		// 
@@ -402,6 +406,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 	double dist = 0.0;
 	static double dt = (1.0/desired_freq);
 	double max_diff = 0.0;
+	int current_collision_level = 0;
 	//ROS_INFO("TDIFF = %.3f",(ros::Time::now() - cartesian_euler_msg.t).toSec());
 		
 	// local copy of class attribute to avoid overwritte 
@@ -450,7 +455,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 			found_ik = kinematic_state->setFromIK(groups2joint_model_group[current_move_group->name_group], next_end_effector_state, 5.0, 0.1);
 			
 			if(found_ik){
-				if(checkCollision(&collision_result, kinematic_state)){
+				if(checkCollision(&collision_result, kinematic_state, &current_collision_level)){
 					ROS_ERROR("%s::readyState: Robot in collision (CARTESIAN-EULER:POSITION)", component_name.c_str());
 				}else{
 				// NO-COLLISION
@@ -571,14 +576,29 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 	double dist = 0.0;
 	static double dt = (1.0/desired_freq);
 	double max_diff = 0.0;
-
+	double t = (ros::Time::now() - cartesian_euler_msg.t).toSec();
+	sensor_msgs::JointState msg;
+	int current_collision_level = 0;
+	
+	current_group_joints = current_move_group->joint_names;
+	vector<double> velocities_zero(current_group_joints.size(), 0.0);
+	vector<double> velocities(current_group_joints.size(), 0.0);
+	vector<double> joint_values;
+	
+	for(int i = 0; i<current_move_group->joint_values.size(); i++){
+		joint_values.push_back(*current_move_group->joint_values[i]);
+	}
+	//aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], move_group_robot->getCurrentJointValues());
+	//aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], current_move_group->mg->getCurrentJointValues());
+	//aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], joint_values);
 	
 	robot_state::RobotStatePtr previous_kinematic_state = robot_state::RobotStatePtr( new robot_state::RobotState( kinematic_model ) );
 	*previous_kinematic_state = *aux_kinematic_state;
 	// local copy of class attribute to avoid overwritte 
 	CartesianEulerMsg cartesian_euler_msg = this->cartesian_euler_msg;
 	
-	if((ros::Time::now() - cartesian_euler_msg.t).toSec() <= WATCHDOG_COMMAND){
+	
+	if( t <= WATCHDOG_COMMAND){
 		//ROS_INFO("TDIFF = %.3f",(ros::Time::now() - cartesian_euler_msg.t).toSec());
 		dx = dt*cartesian_euler_msg.msg.x;
 		dy = dt*cartesian_euler_msg.msg.y;
@@ -601,41 +621,30 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 			this->m_transform = this->m_transform * rotMatYaw.matrix();
 			
 			// Gets current joint values from move_group interface
-			//aux_kinematic_state->getJointStateGroup(s_robot_group)->getVariableValues(robot_joint_values);
-			//aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->getVariableValues(current_joint_values);
 			const std::vector<int> current_group_joint_indexes = groups2joint_model_group[current_move_group->name_group]->getVariableIndexList();
 			const double * current_joint_positions = aux_kinematic_state->getVariablePositions();
 			int joints_size_array_ = sizeof(current_joint_positions)/sizeof(current_joint_positions[0]);
 			
+			// Gets the current joint values
 			for(int i = 0; i < current_group_joint_indexes.size(); i++){
 				current_joint_values.push_back(current_joint_positions[current_group_joint_indexes[i]]);
 			}
 			
-			//aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->getVariableValues(current_joint_values);
 			
-			current_group_joints = current_move_group->joint_names;
-			
-			
-			
+				
 			// Updates Kinematic state of the whole robot
-			//if(not aux_kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(robot_joint_values))
-			//	ROS_ERROR("%s::sendCartesianEulerVelocity: ERROR setting variable values for current kinematic state(CARTESIAN-EULER:VELOCITY)", component_name.c_str());
-			
 			Eigen::Affine3d end_effector_state = aux_kinematic_state->getFrameTransform(current_move_group->mg->getEndEffectorLink().c_str());	
-			//Eigen::Affine3d end_effector_state = aux_kinematic_state->getFrameTransform("hand_right_grasp_link");	//hand_right_grasp_link
-			//Eigen::Affine3d end_effector_state = aux_kinematic_state->getLinkState("hand_right_grasp_link")->getGlobalLinkTransform();
-			//joint_state_group_->getRobotState()->getLinkState(this->arm_tcp_link_)->getGlobalLinkTransform();
 			// Applying transformation
 			Eigen::Affine3d next_end_effector_state = end_effector_state;
 			next_end_effector_state = next_end_effector_state * this->m_transform;
 			
 			// Calcs Inverse Kinematics
-			// found_ik = aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->setFromIK(next_end_effector_state, 5.0, 0.1);
 			found_ik = aux_kinematic_state->setFromIK(groups2joint_model_group[current_move_group->name_group], next_end_effector_state, 5.0, 0.1);
 			
 			if(found_ik){
-				if(checkCollision(&collision_result, aux_kinematic_state)){
+				if(checkCollision(&collision_result, aux_kinematic_state, &current_collision_level)){
 					ROS_ERROR("%s::sendCartesianEulerVelocity: Robot in collision (CARTESIAN-EULER:VELOCITY)", component_name.c_str());
+					// Go back to previous kinematic state
 					*aux_kinematic_state = *previous_kinematic_state;
 				}else{
 				// NO-COLLISION
@@ -644,21 +653,20 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 						*aux_kinematic_state = *previous_kinematic_state;
 						//aux_kinematic_state->enforceBounds();
 					}
-					// SATIFIES BOUNDS
+					// SATISFIES BOUNDS
 					std::vector<double> transformed_joint_values;
 					double jump_constant = 0.2;
 					bool bJump = false;
 					
 					// Check that next joint values doesn't produce a jump
-					//aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->getVariableValues(transformed_joint_values);
-					
 					const double * transfomed_joint_positions = aux_kinematic_state->getVariablePositions();
 					
 					for(int i = 0; i < current_group_joint_indexes.size(); i++){
 						transformed_joint_values.push_back(transfomed_joint_positions[current_group_joint_indexes[i]]);
 					}
 					
-					vector<double> velocities(transformed_joint_values.size(), DEFAULT_JOINT_VEL);
+					velocities = vector<double>(transformed_joint_values.size(), 0.0);
+					
 					
 					double diff_joint = 0.0;
 					for(std::size_t i = 0; i < transformed_joint_values.size(); ++i)
@@ -674,66 +682,45 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 						}
 					} 
 					//bJump = false;
-					if(!bJump){
+					if(!bJump){			
 						
-						
-						
-						// Prepare msg
-						trajectory_msgs::JointTrajectoryPoint p;
-					  
-						p.positions = current_joint_values;	
-						
-						
-						p.velocities = velocities;
-						
-						// Acceleration constant
-						vector<double> accelerations(current_joint_values.size(), 1.0);
-
-						p.accelerations = accelerations;  
-						
-						//ROS_INFO("VELOCITIES BEFORE");
-						//for(int i = 0; i < p.velocities.size(); i++){	
-						//	ROS_INFO("%s->[%d] = %f", current_group_joints[i].c_str(), i, p.velocities[i]);
-						//}
-						controlMaxVelocities(p.velocities, MAX_JOINT_VEL_CARTESIAN);
-						//ROS_INFO("VELOCITIES AFTER");
-						//for(int i = 0; i < p.velocities.size(); i++){	
-						//	ROS_INFO("%s->[%d] = %f", current_group_joints[i].c_str(), i, p.velocities[i]);
-						//}	
-						
-						trajectory_msgs::JointTrajectory t;
-						t.joint_names = current_group_joints;
-						t.points.push_back(p);
-											
-						control_msgs::FollowJointTrajectoryGoal goal_;
-						goal_.trajectory = t; 
-
 						goal_active = true;
-							
-						// If there's any other active trajectory, overwrites it
-						this->ac_follow_joint_traj->sendGoal(goal_);
 						
-					}		
-					
-				
+						
+					}else
+						velocities = velocities_zero;
 				}
-						
 			}else{
 				ROS_ERROR("%s::sendCartesianEulerVelocity: IK NOT FOUND (CARTESIAN-EULER:VELOCITY)", component_name.c_str());
 				*aux_kinematic_state = *previous_kinematic_state;
+				velocities = velocities_zero;
 			}
+		}else{
+			velocities = velocities_zero;
+			goal_active = true;
 		}
-		
-		
 		
 		this->cartesian_euler_msg.processed = true;
 		
 	}else{
 		// TIMEOUT WITHOUT RECEIVING COMMANDS
-		ROS_INFO("%s::readyState: Trajectory ended (CARTESIAN:VELOCITY)", component_name.c_str());
+		ROS_INFO("%s::readyState: Trajectory ended (CARTESIAN:VELOCITY): %.3lf seconds without commands", component_name.c_str(), t);
+		
+		joint_command_publisher.publish(msg);
 		//switchToState(robotnik_msgs::State::STANDBY_STATE);
 		goal_active = false;
 	}
+	
+	// Joint names
+	msg.name = current_group_joints;
+	msg.velocity = velocities;		
+	
+	ROS_INFO("%s::sendCartesianEulerVelocity: Sending command velocity", component_name.c_str());						
+	for(int i = 0; i < msg.name.size(); i++){
+		ROS_INFO("\t joint %s -> %.3lf", msg.name[i].c_str(), msg.velocity[i]);
+	}
+	
+	joint_command_publisher.publish(msg);
 }
 
 
@@ -780,7 +767,7 @@ void RtTrajPlanner::controlMaxVelocities(vector<double> &velocities, double max_
 
 */
 int RtTrajPlanner::sendJointByJointVelocity(){
-	std::vector<double> current_joint_values, robot_joint_values;
+	std::vector<double> current_joint_values, previous_joint_values;
 	std::vector<std::string> current_group_joints;
 	static double t_planning = 0.5;
 	moveit::planning_interface::MoveGroup::Plan my_plan;
@@ -791,41 +778,25 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 	static double dt = (1.0/real_freq);
 	double max_diff = 0.0;
 	double inc_joint = 0.0;
+	sensor_msgs::JointState msg;
+	int current_collision_level = 0;
+	
+	for(int i = 0; i<current_move_group->joint_values.size(); i++){
+		current_joint_values.push_back(*current_move_group->joint_values[i]);
+		previous_joint_values.push_back(*current_move_group->joint_values[i]);
+	}
+	// Gets current joint values from move_group interface
+	current_group_joints = current_move_group->joint_names;
+	//const double * current_joint_positions = aux_kinematic_state->getVariablePositions();
+	
+	std::vector<double> velocities(current_joint_values.size());
+	vector<double> velocities_zero(current_joint_values.size(), 0.0);
 	
 	if((ros::Time::now() - joint_by_joint_msg.t).toSec() <= WATCHDOG_COMMAND){
-			
-		// Gets current joint values from move_group interface
-		//aux_kinematic_state->getJointStateGroup(s_robot_group)->getVariableValues(robot_joint_values);
+
 		
-		/*const std::vector<int> current_robot_joint_indexes = groups2joint_model_group[s_robot_group]->getVariableIndexList();
-		const double * current_robot_joint_positions = aux_kinematic_state->getVariablePositions();
-		
-		//return 0;
-		for(int i = 0; i < current_robot_joint_indexes.size(); i++){
-			robot_joint_values.push_back(current_robot_joint_positions[current_robot_joint_indexes[i]]);
-		}*/
-		
-		// Gets current joint values from move_group interface
-		robot_joint_values = move_group_robot->getCurrentJointValues();
-		//current_joint_values = current_move_group->mg->getCurrentJointValues();
-		current_group_joints = current_move_group->joint_names;
 		//ROS_INFO("sendJointByJointVelocity: %d indexes for group %s ", current_joint_values.size(), current_move_group->name_group.c_str());
-		
-		//robot_joint_values = move_group_robot->getCurrentJointValues();
-		
-		//aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->getVariableValues(current_joint_values);
-		//current_joint_values = current_move_group->mg->getCurrentJointValues();
-		
-		const std::vector<int> current_joint_indexes = groups2joint_model_group[current_move_group->name_group]->getVariableIndexList();
-		const double * current_joint_positions = aux_kinematic_state->getVariablePositions();
-		
-		for(int i = 0; i < current_joint_indexes.size(); i++){
-			current_joint_values.push_back(current_joint_positions[current_joint_indexes[i]]);
-		}
-		
-		
-		std::vector<double> velocities(current_joint_values.size());
-		
+				
 		// Estimate the next joint value based on velocity
 		for(int32_t i = 0; i < current_joint_values.size(); i++){
 			
@@ -834,23 +805,10 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 					inc_joint = dt*joint_by_joint_msg.msg.values[j];
 					//ROS_INFO("%s::sendJointByJointVelocity: joint %s min inc %.3lf", component_name.c_str(), current_group_joints[i].c_str(), inc_joint);
 					// Checking the min joint increment
-					if(inc_joint != 0.0){
-						if(inc_joint < 0.0 and inc_joint > -min_joint_position_inc_){
-							inc_joint = -min_joint_position_inc_;
-							//ROS_INFO("%s::sendJointByJointVelocity: joint %s min inc %.3lf", component_name.c_str(), current_group_joints[i].c_str(), inc_joint);
-						}else if(inc_joint > 0.0 and inc_joint < min_joint_position_inc_){
-							inc_joint = min_joint_position_inc_;
-							//ROS_INFO("%s::sendJointByJointVelocity: joint %s min inc %.3lf", component_name.c_str(), current_group_joints[i].c_str(), inc_joint);
-						}			
-					}
 					current_joint_values[i] += inc_joint;
-					//velocities[i] = joint_by_joint_msg.msg.values[j];
-					if(joint_by_joint_msg.msg.values[j] < 0)
-						velocities[i] = -0.1;
-					else if(joint_by_joint_msg.msg.values[j] > 0)
-						velocities[i] = 0.1;
+					velocities[i] = joint_by_joint_msg.msg.values[j];
 					
-					ROS_INFO("%s::sendJointByJointVelocity: Setting joint %s to %.3lf (inc = %.3lf) to %.3lf rads/s", component_name.c_str(), current_group_joints[i].c_str(), current_joint_values[i], inc_joint, velocities[i]);
+					//ROS_INFO("%s::sendJointByJointVelocity: Setting joint %s to %.3lf (inc = %.3lf) to %.3lf rads/s", component_name.c_str(), current_group_joints[i].c_str(), current_joint_values[i], inc_joint, velocities[i]);
 					break;
 				}
 			}					
@@ -861,12 +819,14 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 		// Updates kinematic state after setting the values with the previous modifications
 		//if(not aux_kinematic_state->getJointStateGroup(current_move_group->name_group)->setVariableValues(current_joint_values))
 		//	ROS_ERROR("%s::sendJointByJointVelocity: ERROR setting variable values for new kinematic state (JOINTBYJOINT:VELOCITY)", component_name.c_str());
-		//aux_kinematic_state->setVariablePositions(current_move_group->joint_names, current_joint_values);
 		aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], current_joint_values);
 		
-		if(checkCollision(&collision_result, aux_kinematic_state)){
+		if(checkCollision(&collision_result, aux_kinematic_state, &current_collision_level)){
 			ROS_ERROR("%s::sendJointByJointVelocity: Robot in collision (JOINTBYJOINT:VELOCITY)", component_name.c_str());
-			*aux_kinematic_state = *previous_kinematic_state;
+			//*aux_kinematic_state = *previous_kinematic_state;
+			aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], previous_joint_values);
+			velocities = velocities_zero;
+			goal_active = true;
 			
 		}else{
 		// NO-COLLISION
@@ -886,7 +846,7 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 			}
 			// SATIFIES BOUNDS
 			// Prepare msg
-			trajectory_msgs::JointTrajectoryPoint p;
+			/*trajectory_msgs::JointTrajectoryPoint p;
 		  
 			p.positions = current_joint_values;
 
@@ -909,19 +869,36 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 			goal_active = true;
 				
 			// If there's any other active trajectory, overwrites it
-			this->ac_follow_joint_traj->sendGoal(goal_);
+			this->ac_follow_joint_traj->sendGoal(goal_);*/
 			
+			
+			goal_active = true;
 			
 		
 		}
 		
 		this->joint_by_joint_msg.processed = true;
+		
+		// Joint names
+		msg.name = current_group_joints;
+		msg.velocity = velocities;		
+		
+		
+		
 	}else{
 		// TIMEOUT WITHOUT RECEIVING COMMANDS
 		ROS_INFO("%s::sendJointByJointVelocity: Trajectory ended (JOINTBYJOINT:VELOCITY)", component_name.c_str());
 		//switchToState(robotnik_msgs::State::STANDBY_STATE);
 		goal_active = false;
+		velocities = velocities_zero;
 	}
+	
+	ROS_INFO("%s::sendJointByJointVelocity: Sending command velocity", component_name.c_str());						
+	for(int i = 0; i < msg.name.size(); i++){
+		ROS_INFO("\t joint %s -> %.3lf", msg.name[i].c_str(), msg.velocity[i]);
+	}
+	
+	joint_command_publisher.publish(msg);
 	
 }
 
@@ -943,6 +920,7 @@ int RtTrajPlanner::sendJointByJointPosition(){
 	double dist = 0.0;
 	static double dt = (1.0/desired_freq);
 	double max_diff = 0.0;
+	int current_collision_level = 0;
 	
 	// local copy of class attribute to avoid overwritte 
 	JointByJointMsg joint_by_joint_msg = this->joint_by_joint_msg;
@@ -983,7 +961,7 @@ int RtTrajPlanner::sendJointByJointPosition(){
 			ROS_INFO("joint %s", current_group_joints[j].c_str());
 		}*/
 	
-		if(checkCollision(&collision_result, kinematic_state)){
+		if(checkCollision(&collision_result, kinematic_state, &current_collision_level)){
 			ROS_ERROR("%s::sendJointByJointPosition: Robot in collision (JOINTBYJOINT:POSITION)", component_name.c_str());
 		}else{
 		// NO-COLLISION
@@ -1063,6 +1041,7 @@ int RtTrajPlanner::sendTrajectory(){
 	double dist = 0.0;
 	static double dt = (1.0/desired_freq);
 	double max_diff = 0.0;
+	int current_collision_level = 0;
 	
 	bool error = false;
 		
@@ -1086,9 +1065,6 @@ int RtTrajPlanner::sendTrajectory(){
 			current_group_joints = current_move_group->mg->getJoints();
 			
 			// Updates Kinematic state of the whole robot
-			//if(not kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(robot_joint_values))
-			//	ROS_ERROR("%s::sendTrajectory: ERROR setting variable values for current kinematic state(TRAJECTORY)", component_name.c_str());
-			// kinematic_state->setVariablePositions(robot_joint_values);
 			kinematic_state->setJointGroupPositions(joint_robot_model_group, robot_joint_values);
 			
 			max_diff = 0;
@@ -1109,15 +1085,9 @@ int RtTrajPlanner::sendTrajectory(){
 			}
 			
 			
-			
-			
-			// Updates Kinematic state of the whole robot
-			//if(not kinematic_state->getJointStateGroup(current_move_group->name_group)->setVariableValues(current_joint_values))
-			//	ROS_ERROR("%s::sendTrajectory: ERROR setting variable values for current kinematic state(TRAJECTORY)", component_name.c_str());
-			//kinematic_state->setVariablePositions(current_group_joints, current_joint_values);
 			kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], current_joint_values);
 			
-			if(checkCollision(&collision_result, kinematic_state)){
+			if(checkCollision(&collision_result, kinematic_state, &current_collision_level)){
 				ROS_ERROR("%s::sendTrajectory: Robot in collision (TRAJECTORY)", component_name.c_str());
 				error = true;
 			}else{
@@ -1195,197 +1165,6 @@ int RtTrajPlanner::sendTrajectory(){
 }
  
  
-		
-
-/*!	\fn void RtTrajPlanner::readyState2()
- *	\brief Actions performed on ready state
-*/
-void RtTrajPlanner::readyState2(){
-	
-	std::vector<double> current_joint_values, arm_joint_values;
-	std::vector<std::string> group_variable_joints;
-	std::vector<double> joint_values;
-	moveit::planning_interface::MoveGroup::Plan my_plan;
-	bool found_ik = false;
-	static double dx = -0.01, dy= -0.01, dz = 0.01, dpitch = 0.01, droll = 0.01;
-	static double t_planning = 0.5;
-	double dist = 0.0;
-	
-	this->m_transform << 1.0, 0.0, 0.0, dx,
-		0.0, 1.0, 0.0,  dy,
-		0.0, 0.0, 1.0,  dz,
-		0.0, 0.0, 0.0, 1.0;
-
-	Eigen::Affine3d rotMatPitch( Eigen::AngleAxisd( dpitch, ( Eigen::Vector3d() << 0.0, 1.0, 0.0 ).finished() ) );
-	this->m_transform = this->m_transform * rotMatPitch.matrix();
-	Eigen::Affine3d rotMatRoll( Eigen::AngleAxisd( droll, ( Eigen::Vector3d() << 1.0, 0.0, 0.0 ).finished() ) );
-	this->m_transform = this->m_transform * rotMatRoll.matrix();
-	
-	//ROS_INFO("Planning time = %.3f", current_move_group->getPlanningTime());
-	
-	// Gets current joint values from move_group iface
-	current_joint_values = move_group_robot->getCurrentJointValues();
-	arm_joint_values = current_move_group->mg->getCurrentJointValues();
-	group_variable_joints = move_group_robot->getJoints();
-	
-	//if(not kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(current_joint_values))
-	//	ROS_ERROR("ERROR setting variable values for jointstategroup");
-	kinematic_state->setVariablePositions(current_joint_values);
-	
-	/*
-	 * PRINT THE JOINTS BEFORE MOVING
-	 * for(std::size_t i = 0; i < group_variable_joints.size(); ++i)
-	{
-		ROS_INFO("Before moving: Joint %s: %f", group_variable_joints[i].c_str(), current_joint_values[i]);
-	}*/
-	
-	// Gets the transformation of end-effector
-	//const Eigen::Affine3d &end_effector_state = kinematic_state->getFrameTransform("wsg50_base_link");
-	const Eigen::Affine3d &end_effector_state = kinematic_state->getFrameTransform(current_move_group->mg->getEndEffectorLink().c_str());
-	//Print end-effector pose. Remember that this is in the model frame //
-	//ROS_INFO_STREAM("Translation: " << end_effector_state.translation());
-	//ROS_INFO_STREAM("Rotation: " << end_effector_state.rotation());
-	
-	// Applying transformation
-	Eigen::Affine3d next_end_effector_state = end_effector_state;
-	next_end_effector_state = next_end_effector_state * this->m_transform;
-	
-	// Calcs Inverse Kinematics
-	//found_ik = kinematic_state->getJointStateGroup(current_move_group->name_group)->setFromIK(next_end_effector_state, 5.0, 0.1);
-	found_ik = kinematic_state->setFromIK(groups2joint_model_group[current_move_group->name_group], next_end_effector_state, 5.0, 0.1);
-	
-	if(found_ik){
-		//ROS_INFO("found_ik!");
-		// Now, let's modify one of the joints, plan to the new joint
-		// space goal and visualize the plan.
-		//current_joint_values[0] = 2.0;  
-		//current_joint_values[1] = 1.0;  
-		//
-		planning_scene->setCurrentState(*kinematic_state);
-		//robot_state::RobotState& current_state = planning_scene->getCurrentStateNonConst();
-		//current_state = *kinematic_state;
-		collision_detection::CollisionRequest collision_request;
-		collision_detection::CollisionResult collision_result;
-		collision_request.contacts = true;
-		collision_request.max_contacts = 1000;
-		collision_request.group_name = current_move_group->name_group;  
-		collision_request.distance = true;
-		//collision_result.clear();
-		//planning_scene->checkCollision(collision_request, collision_result);
-		planning_scene->checkSelfCollision(collision_request, collision_result);
-		//ROS_INFO("Collision result %5.10f", collision_result.distance);
-		
-		if(collision_result.collision){ 
-			ROS_ERROR("Robot in SELF-COLLISION: distance = %.4f",collision_result.distance);
-			dx = -dx;
-			dy = -dy;
-			dz = -dz;
-			collision_detection::CollisionResult::ContactMap::const_iterator it;
-			for(it = collision_result.contacts.begin();
-				it != collision_result.contacts.end();
-				++it)
-			{
-			  ROS_INFO("Contact between: %s and %s",
-					   it->first.first.c_str(),
-					   it->first.second.c_str());
-			}
-		}else{
-			// Check if the bounds are satisfied
-			/* Check whether any joint is outside its joint limits */
-			if(!kinematic_state->satisfiesBounds()){
-				dx = -dx;
-				dy = -dy;
-				dz = -dz;
-				dpitch = -dpitch;
-				droll = -droll;
-				ROS_ERROR("Kinematic state doesn't satisfy bounds!");
-				/* Enforce the joint limits for this state and check again*/
-				kinematic_state->enforceBounds();
-				ROS_INFO_STREAM("Current state after enforcing is " << (kinematic_state->satisfiesBounds() ? "valid" : "not valid"));
-			}
-			
-			// Check that next joint values doesn't produce a jump
-			//kinematic_state->getJointStateGroup(current_move_group->name_group)->getVariableValues(joint_values);
-			joint_values.clear();
-			const std::vector<int> current_joint_indexes = groups2joint_model_group[current_move_group->name_group]->getVariableIndexList();
-			const double * current_joint_positions = kinematic_state->getVariablePositions();
-			for(int i = 0; i < current_joint_indexes.size(); i++){
-				joint_values.push_back(current_joint_positions[current_joint_indexes[i]]);
-			}
-			
-			bool bJump = false;
-			for(std::size_t i = 0; i < joint_values.size(); ++i)
-			{
-				dist = fabs ( joint_values[i] - arm_joint_values[i] );
-				//ROS_INFO("Diff on joint %d =  %5.2f", (int)i+1, dist);
-				if (dist > 0.2) {   // TODO - this limit as parameter, it could be a function of speed
-					ROS_INFO("JUMP in joint (%d) -> %5.2f", (int)i+1, dist);
-					bJump = true;
-				}
-			} 
-			
-			if(!bJump){
-					//kinematic_state->getJointStateGroup("right_arm")->getVariableValues(joint_values);
-				//current_move_group->setJointValueTarget(joint_values);
-				current_move_group->mg->clearPoseTarget();
-				current_move_group->mg->setPoseTarget(next_end_effector_state);
-				
-				//current_move_group->setRandomTarget();
-				current_move_group->mg->setPlanningTime(t_planning);
-				bool success = current_move_group->mg->plan(my_plan);
-				
-				//ROS_INFO("Getting plan (joint space goal) %s",success?"OK":"FAILED");
-				
-				// bool success = current_move_group->asyncMove();
-				// bool success = current_move_group->move();
-				if(success){
-					// Moving using move_group
-					//current_move_group->stop();
-					//success = current_move_group->asyncExecute(my_plan);
-					
-					// Sending via action client
-					//control_msgs::FollowJointTrajectoryActionGoal goal_;
-					control_msgs::FollowJointTrajectoryGoal goal_;
-					goal_.trajectory = my_plan.trajectory_.joint_trajectory;
-					
-					actionlib::SimpleClientGoalState goal_state = this->ac_follow_joint_traj->getState();
-					
-					
-					//ROS_INFO("RtTrajPlanner::readyState: current goal state = %s, msg = %s", goal_state.toString().c_str(), goal_state.getText().c_str());
-					//this->ac_follow_joint_traj->sendGoal(&this->goal.trajectory);
-					this->ac_follow_joint_traj->sendGoal(goal_);
-					
-					
-					
-					// Sleep to give Rviz time to visualize the plan. //
-					sleep(t_planning);
-					
-					
-				}else{
-					ROS_ERROR("Error getting plan");
-					dx = -dx;
-					dy = -dy;
-					dz = -dz;
-				}
-			}else{
-				dx = -dx;
-				dy = -dy;
-				dz = -dz;
-			}
-		}
-	
-		//ROS_INFO("Is state collidin? %s", planning_scene->isStateColliding(*kinematic_state)? "true": "false");
-			
-	}else{
-		ROS_INFO("Did not find IK solution");
-		dx = -dx;
-		dy = -dy;
-		dz = -dz;
-	}
-	
-	
-		
-}
 
 /*!	\fn void RtTrajPlanner::EmergencyState()
  *	\brief Actions performed on emergency state
@@ -1588,7 +1367,29 @@ int RtTrajPlanner::rosSetup(){
 	pnh.param<std::string>("control_state_actions_service", control_state_actions_service_name, "/rt_traj_exe/actions");
 	pnh.param<std::string>("load_trajectory_service", load_trajectory_service_name, "/rt_traj_manager/load_state");
 	pnh.param<double>("min_joint_position_inc", min_joint_position_inc_, MIN_JOINT_POSITION_INC);
+	pnh.param<double>("collision_distance_1", collision_distance_1_, DEFAULT_COLLISION_DISTANCE_1);
+	pnh.param<double>("collision_distance_2", collision_distance_2_, DEFAULT_COLLISION_DISTANCE_2);
+	pnh.param<double>("collision_distance_3", collision_distance_3_, DEFAULT_COLLISION_DISTANCE_3);
+	// Positive values required
+	collision_distance_1_ = fabs(collision_distance_1_);
+	collision_distance_2_ = fabs(collision_distance_2_);
+	collision_distance_3_ = fabs(collision_distance_3_);
+	
 	//pnh.param<std::string>("init_position_id", init_position_id, "init_position");
+	
+	// Creating one MoveGroup interface the whole model
+	move_group_robot = new moveit::planning_interface::MoveGroup(s_robot_group);
+	vector<string> robot_joints = move_group_robot->getJoints();
+	
+	ROS_INFO("%s::rosSetup: Follow joint trajectory action on %s",component_name.c_str(), follow_joint_traj_name.c_str());
+	ROS_INFO("%s::rosSetup: Robot group %s",component_name.c_str(), s_robot_group.c_str());
+	
+	// Initializing JointState map to save the joint state values
+	for(int j = 0; j<robot_joints.size();j++){
+		ROS_INFO("\tjoint %s", robot_joints[j].c_str());
+		robot_joint_state[robot_joints[j]] = 0.0;
+	}
+	
 	
 	XmlRpc::XmlRpcValue list;
 	pnh.getParam("move_groups", list);
@@ -1611,18 +1412,11 @@ int RtTrajPlanner::rosSetup(){
 		// Saves the list of joint of this groups to avoid calling the function iteratively
 		mgs.joint_names = mgs.mg->getJoints(); 
 		for(int j = 0; j<mgs.joint_names.size();j++){
-			ROS_INFO("joint %s", mgs.joint_names[j].c_str());
+			ROS_INFO("\tjoint %s", mgs.joint_names[j].c_str());
+			// Linking joint value with the map 
+			mgs.joint_values.push_back(&robot_joint_state[mgs.joint_names[j]]);
 		}
 		v_move_groups.push_back(mgs); 
-	}
-	// Creating one MoveGroup interface the whole model
-	move_group_robot = new moveit::planning_interface::MoveGroup(s_robot_group);
-	vector<string> robot_joints = move_group_robot->getJoints();
-	
-	ROS_INFO("%s::rosSetup: Follow joint trajectory action on %s",component_name.c_str(), follow_joint_traj_name.c_str());
-	ROS_INFO("%s::rosSetup: Robot group %s",component_name.c_str(), s_robot_group.c_str());
-	for(int j = 0; j<robot_joints.size();j++){
-		ROS_INFO("joint %s", robot_joints[j].c_str());
 	}
 	
 	// Sets the first group name by default
@@ -1633,6 +1427,7 @@ int RtTrajPlanner::rosSetup(){
 	//
 	display_publisher = nh.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
 	state_publisher = pnh.advertise<robotnik_trajectory_planner::State>("state", 1, true);
+	joint_command_publisher = nh.advertise<sensor_msgs::JointState>("/joint_commands", 1, true);
 	
 	//
 	// Subscribers
@@ -1641,6 +1436,7 @@ int RtTrajPlanner::rosSetup(){
 	cartesianeuler_subscriber = pnh.subscribe("commands/cartesian_euler", 1, &RtTrajPlanner::cartesianEulerCallback, this);
 	trajectory_subscriber = pnh.subscribe("commands/trajectory", 1, &RtTrajPlanner::trajectoryCallback, this);
 	torso_control_state_subscriber = nh.subscribe(control_state_topic_name, 1, &RtTrajPlanner::controlStateCallback, this);
+	joint_state_subscriber = nh.subscribe("/joint_states", 1, &RtTrajPlanner::jointStateCallback, this);
 	
 	//
 	// Services
@@ -1746,8 +1542,12 @@ void RtTrajPlanner::rosPublish(){
 	
 	if(this->ac_follow_joint_traj->isServerConnected()){
 		if(goal_active){
-			actionlib::SimpleClientGoalState goal_state = this->ac_follow_joint_traj->getState();
-			st.goal_state = goal_state.toString();
+			if((control_type == CARTESIAN_EULER or control_type == JOINTBYJOINT) and control_mode == VELOCITY)
+				st.goal_state = "IDLE";
+			else{
+				actionlib::SimpleClientGoalState goal_state = this->ac_follow_joint_traj->getState();
+				st.goal_state = goal_state.toString();
+			}
 		}else{
 			st.goal_state = "IDLE";
 		}
@@ -1974,10 +1774,13 @@ void RtTrajPlanner::controlStateCallback(const robotnik_trajectory_control::Stat
 }
 
 
-/*!	\fn  bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res = NULL, robot_state::RobotStatePtr k_state)
+/*!	\fn  bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res = NULL, robot_state::RobotStatePtr k_state, int *collision_level)
  * 	\brief Checks for collision
+ * 	\param collision_level as int*, defines different levels of proximity
  */
-bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res, robot_state::RobotStatePtr k_state){
+bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res, robot_state::RobotStatePtr k_state, int *collision_level){
+	bool ret = false;
+	
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
 	
@@ -1987,6 +1790,8 @@ bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res, ro
 	collision_request.group_name = current_move_group->name_group;  
 	collision_request.distance = true;
 	
+	*collision_level = -1;
+	
 	planning_scene->checkCollision(collision_request, collision_result);
 	
 	if(collision_result.collision){
@@ -1995,14 +1800,32 @@ bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res, ro
 			it != collision_result.contacts.end();
 			++it)
 		{
-		  ROS_INFO("Contact between: %s and %s",
+		  ROS_ERROR("RtTrajPlanner::checkCollision: Contact between: %s and %s",
 				   it->first.first.c_str(),
 				   it->first.second.c_str());
 		}
+		
+		ret = true;
+		
+		*collision_level = 0;
+		
+	}else if(collision_result.distance <= collision_distance_1_){
+		  ROS_ERROR("RtTrajPlanner::checkCollision: level 1 Contact at %.3lf m", collision_result.distance);
+		  *collision_level = 1;
+
+	}else if(collision_result.distance > collision_distance_1_ && collision_result.distance <= collision_distance_2_){
+		  ROS_ERROR("RtTrajPlanner::checkCollision: level 2 Contact at %.3lf m", collision_result.distance);
+		  *collision_level = 2;
+		
+	}else if(collision_result.distance > collision_distance_2_ && collision_result.distance <= collision_distance_3_){
+		  ROS_ERROR("RtTrajPlanner::checkCollision: level 3 Contact at %.3lf m", collision_result.distance);
+		  *collision_level = 3;
+		  
 	}
+	
 	*res = collision_result;
 	
-	return collision_result.collision;
+	return ret;
 }
 	
  
@@ -2044,6 +1867,29 @@ int RtTrajPlanner::loadPositionFromManager(string id){
 	}
 }
 		
+
+/*!	\fn RtTrajPlanner::jointStateCallback(const sensor_msgs::JointState::ConstPtr& msg)
+ * 	\brief Topic callback to move all the joints through joint state interface
+*/
+void RtTrajPlanner::jointStateCallback(const sensor_msgs::JointState::ConstPtr& msg)
+{	
+
+	bool match_key = false;
+	
+	for(int i = 0; i<msg->name.size(); i++){
+		try{
+			robot_joint_state.at(msg->name[i]) = msg->position[i];
+			match_key = true;
+		}catch (const std::out_of_range& oor) {
+			//ROS_ERROR( "RtTrajPlanner::jointStateCallback: joint %s, Out of Range error: %s",msg->name[i].c_str(), oor.what());
+		}
+	}
+	
+	//if(match_key)
+	//	timer_joints = ros::Time::now();
+
+}
+
 		
 //////////		
 // MAIN //

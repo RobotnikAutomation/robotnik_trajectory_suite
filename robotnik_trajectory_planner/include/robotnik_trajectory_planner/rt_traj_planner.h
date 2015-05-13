@@ -2,8 +2,8 @@
  *  \file RtTrajPlanner.h
  *	\author Robotnik Automation S.L.L
  *	\version 0.1.0
- *	\date 2014
- *  \brief Class to plan and control the trajectories for the robotnik_torso
+ *	\date 2015
+ *  \brief Class to plan and control the trajectories for the RB1 robot
  * 
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -54,6 +54,8 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 
+#include <sensor_msgs/JointState.h>
+
 #include <XmlRpcValue.h>
 
 
@@ -81,19 +83,22 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 	#define __RTTRAJPLANNER_H
 
 //! Size of string for logging
-#define DEFAULT_THREAD_DESIRED_HZ	40.0
-#define DEFAULT_T_PLAN				5.0
-#define WATCHDOG_COMMAND			0.1	// Timeout for receiving commands (in velocity mode)
-#define DEFAULT_JOINT_ACCEL			0.1 // Acceleration applied to joints
-#define DEFAULT_JOINT_VEL			0.1 // Velocity applied to joints
-#define MAX_JOINT_VEL				0.1 // Max joint velocity allowed
-#define MAX_JOINT_VEL_CARTESIAN		0.1 // Max joint velocity allowed
-#define MAX_JOINT_VEL_TRAJECTORY	0.2 // Max joint velocity allowed
-#define MAX_JOINT_VEL_JOINTBYJOINT	0.2 // Max joint velocity allowed
-#define MAX_LINEAR_VEL				0.015 // m/s
-#define MAX_JOINT_VEL_2				1.0 // rad/s
-#define DESIRED_MAX_JOINT_VEL		0.1	// MAx joint velocity allowed
-#define MIN_JOINT_POSITION_INC		0.01 // Min resolution accepted by the arm
+#define DEFAULT_THREAD_DESIRED_HZ		40.0
+#define DEFAULT_T_PLAN					5.0
+#define WATCHDOG_COMMAND				0.1	// Timeout for receiving commands (in velocity mode)
+#define DEFAULT_JOINT_ACCEL				0.1 // Acceleration applied to joints
+#define DEFAULT_JOINT_VEL				0.1 // Velocity applied to joints
+#define MAX_JOINT_VEL					0.1 // Max joint velocity allowed
+#define MAX_JOINT_VEL_CARTESIAN			0.1 // Max joint velocity allowed
+#define MAX_JOINT_VEL_TRAJECTORY		0.2 // Max joint velocity allowed
+#define MAX_JOINT_VEL_JOINTBYJOINT		0.2 // Max joint velocity allowed
+#define MAX_LINEAR_VEL					0.06 // m/s
+#define MAX_JOINT_VEL_2					1.0 // rad/s
+#define DESIRED_MAX_JOINT_VEL			0.1	// MAx joint velocity allowed
+#define MIN_JOINT_POSITION_INC			0.01 // Min resolution accepted by the arm
+#define DEFAULT_COLLISION_DISTANCE_1	0.002	// distance in m
+#define DEFAULT_COLLISION_DISTANCE_2	0.02	// distance in m
+#define DEFAULT_COLLISION_DISTANCE_3	0.03	// distance in m
 
 //! Defines return values for methods and functions
 enum ReturnValue{
@@ -136,7 +141,10 @@ enum Substate{
 typedef struct MoveGroupStruct{
 	moveit::planning_interface::MoveGroup *mg;
 	string name_group;
+	//! saves the list of joints of the group
 	vector<string> joint_names;
+	//! Points the joint values
+	vector<double *> joint_values;
 	string selected_tcp;
 }MoveGroupStruct;
 
@@ -213,7 +221,11 @@ class RtTrajPlanner{
 		bool initialization_request;
 		//! Min joint increment(resolution) accepted by the arm controller
 		double min_joint_position_inc_;
-
+		
+		//! Sets the collision distance
+		double collision_distance_1_;
+		double collision_distance_2_;
+		double collision_distance_3_;
 		
 		// PUBLISHERS
 		//! Creates a publisher for visualizing plans in Rviz.
@@ -221,6 +233,8 @@ class RtTrajPlanner{
 		//! Publishes component state
 		ros::Publisher state_publisher;
 		robotnik_trajectory_planner::State st;
+		//! Publishes to dpro_controller
+		ros::Publisher joint_command_publisher;
 		
 		//! Saves the time whenever receives control state msg
 		ros::Time t_received_control_state;
@@ -229,6 +243,7 @@ class RtTrajPlanner{
 		ros::Subscriber cartesianeuler_subscriber;
 		ros::Subscriber trajectory_subscriber;
 		ros::Subscriber torso_control_state_subscriber;
+		ros::Subscriber joint_state_subscriber;
 		//! Saves the state of the robotnik control
 		robotnik_trajectory_control::State robotnik_control_state;
 		
@@ -261,14 +276,13 @@ class RtTrajPlanner{
 		// The :move_group_interface:`MoveGroup` class can be easily 
 		// setup using just the name
 		// of the group you would like to control and plan for.
-		moveit::planning_interface::MoveGroup *move_group_right_arm; 
 		//! Points to the current JointStateGroup
-		//moveit::planning_interface::MoveGroup *current_move_group;
 		MoveGroupStruct *current_move_group;
 		//! Vector with all the available move groups
 		vector<MoveGroupStruct> v_move_groups; 
-		//! 
-		//string s_current_move_group;
+		
+		//! Saves the current state of the joints
+		std::map<std::string, double> robot_joint_state;
 		
 		moveit::planning_interface::MoveGroup *move_group_robot; 
 		// We will use the :planning_scene_interface:`PlanningSceneInterface`
@@ -407,7 +421,7 @@ class RtTrajPlanner{
 		//! ROS callback handler when receiven Trajectory msgs
 		void trajectoryCallback(const robotnik_trajectory_planner::TrajectoryConstPtr& t);
 		//! Checks for collision
-		bool checkCollision(collision_detection::CollisionResult *res, robot_state::RobotStatePtr k_state);
+		bool checkCollision(collision_detection::CollisionResult *res, robot_state::RobotStatePtr k_state, int *collision_level);
 		//! ROS service to get the joints of a group
 		bool getJointsGroupSrv(robotnik_trajectory_planner::GetJointsGroup::Request &req, robotnik_trajectory_planner::GetJointsGroup::Response &res );
 		//! ROS service to get all the available groups
@@ -434,6 +448,8 @@ class RtTrajPlanner{
 		int loadPositionFromManager(string id);
 		//! Controls and modifies the velocities to not be greater than a maximum 
 		void controlMaxVelocities(vector<double> &velocities, double max_vel);
+		//! Callback to process the joint_state msgs
+		void jointStateCallback(const sensor_msgs::JointState::ConstPtr& msg);
 };
 
 #endif
