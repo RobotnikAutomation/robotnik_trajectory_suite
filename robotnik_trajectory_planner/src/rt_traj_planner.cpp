@@ -492,6 +492,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 						current_move_group->mg->clearPoseTarget();
 						current_move_group->mg->setPoseTarget(next_end_effector_state);
 						current_move_group->mg->setPlanningTime(DEFAULT_T_PLAN);	// TODO: Specify velocity
+						current_move_group->mg->setPlannerId(planner_id_);	
 						// Gets the plan
 						bool success = current_move_group->mg->plan(my_plan);
 						if(!success){
@@ -715,10 +716,10 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 	msg.name = current_group_joints;
 	msg.velocity = velocities;		
 	
-	ROS_INFO("%s::sendCartesianEulerVelocity: Sending command velocity", component_name.c_str());						
+	/*ROS_INFO("%s::sendCartesianEulerVelocity: Sending command velocity", component_name.c_str());						
 	for(int i = 0; i < msg.name.size(); i++){
 		ROS_INFO("\t joint %s -> %.3lf", msg.name[i].c_str(), msg.velocity[i]);
-	}
+	}*/
 	
 	joint_command_publisher.publish(msg);
 }
@@ -845,33 +846,7 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 				//aux_kinematic_state->setVariablePositions(current_move_group->joint_names, current_joint_values);
 			}
 			// SATIFIES BOUNDS
-			// Prepare msg
-			/*trajectory_msgs::JointTrajectoryPoint p;
-		  
-			p.positions = current_joint_values;
-
-			p.velocities = velocities;
-			
-			controlMaxVelocities(p.velocities, MAX_JOINT_VEL_JOINTBYJOINT);
-			
-			// Acceleration constant
-			std::vector<double> accelerations(current_joint_values.size(), DEFAULT_JOINT_ACCEL);
-
-			p.accelerations = accelerations;  
-			
-			trajectory_msgs::JointTrajectory t;
-			t.joint_names = current_group_joints;
-			t.points.push_back(p);
-								
-			control_msgs::FollowJointTrajectoryGoal goal_;
-			goal_.trajectory = t; 
-
-			goal_active = true;
-				
-			// If there's any other active trajectory, overwrites it
-			this->ac_follow_joint_traj->sendGoal(goal_);*/
-			
-			
+					
 			goal_active = true;
 			
 		
@@ -893,10 +868,10 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 		velocities = velocities_zero;
 	}
 	
-	ROS_INFO("%s::sendJointByJointVelocity: Sending command velocity", component_name.c_str());						
+	/*ROS_INFO("%s::sendJointByJointVelocity: Sending command velocity", component_name.c_str());						
 	for(int i = 0; i < msg.name.size(); i++){
 		ROS_INFO("\t joint %s -> %.3lf", msg.name[i].c_str(), msg.velocity[i]);
-	}
+	}*/
 	
 	joint_command_publisher.publish(msg);
 	
@@ -1102,6 +1077,7 @@ int RtTrajPlanner::sendTrajectory(){
 				// Sets the desired target values
 				current_move_group->mg->setJointValueTarget(current_joint_values);
 				current_move_group->mg->setPlanningTime(DEFAULT_T_PLAN);	// TODO: Specify velocity
+				current_move_group->mg->setPlannerId(planner_id_);	
 				// Gets the plan
 				bool success = current_move_group->mg->plan(my_plan);
 				if(!success){
@@ -1366,6 +1342,7 @@ int RtTrajPlanner::rosSetup(){
 	pnh.param<std::string>("control_state_topic", control_state_topic_name, "/rt_traj_exe/state");
 	pnh.param<std::string>("control_state_actions_service", control_state_actions_service_name, "/rt_traj_exe/actions");
 	pnh.param<std::string>("load_trajectory_service", load_trajectory_service_name, "/rt_traj_manager/load_state");
+	pnh.param<std::string>("planner_id", planner_id_, DEFAULT_PLANNER_ID);
 	pnh.param<double>("min_joint_position_inc", min_joint_position_inc_, MIN_JOINT_POSITION_INC);
 	pnh.param<double>("collision_distance_1", collision_distance_1_, DEFAULT_COLLISION_DISTANCE_1);
 	pnh.param<double>("collision_distance_2", collision_distance_2_, DEFAULT_COLLISION_DISTANCE_2);
@@ -1810,15 +1787,15 @@ bool RtTrajPlanner::checkCollision(collision_detection::CollisionResult *res, ro
 		*collision_level = 0;
 		
 	}else if(collision_result.distance <= collision_distance_1_){
-		  ROS_ERROR("RtTrajPlanner::checkCollision: level 1 Contact at %.3lf m", collision_result.distance);
+		  ROS_DEBUG("RtTrajPlanner::checkCollision: level 1 Contact at %.3lf m", collision_result.distance);
 		  *collision_level = 1;
 
 	}else if(collision_result.distance > collision_distance_1_ && collision_result.distance <= collision_distance_2_){
-		  ROS_ERROR("RtTrajPlanner::checkCollision: level 2 Contact at %.3lf m", collision_result.distance);
+		  ROS_DEBUG("RtTrajPlanner::checkCollision: level 2 Contact at %.3lf m", collision_result.distance);
 		  *collision_level = 2;
 		
 	}else if(collision_result.distance > collision_distance_2_ && collision_result.distance <= collision_distance_3_){
-		  ROS_ERROR("RtTrajPlanner::checkCollision: level 3 Contact at %.3lf m", collision_result.distance);
+		  ROS_DEBUG("RtTrajPlanner::checkCollision: level 3 Contact at %.3lf m", collision_result.distance);
 		  *collision_level = 3;
 		  
 	}

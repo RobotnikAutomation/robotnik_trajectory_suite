@@ -90,7 +90,7 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 #define DEFAULT_JOINT_VEL				0.1 // Velocity applied to joints
 #define MAX_JOINT_VEL					0.1 // Max joint velocity allowed
 #define MAX_JOINT_VEL_CARTESIAN			0.1 // Max joint velocity allowed
-#define MAX_JOINT_VEL_TRAJECTORY		0.5 // Max joint velocity allowed
+#define MAX_JOINT_VEL_TRAJECTORY		0.3 // Max joint velocity allowed
 #define MAX_JOINT_VEL_JOINTBYJOINT		0.2 // Max joint velocity allowed
 #define MAX_LINEAR_VEL					0.06 // m/s
 #define MAX_JOINT_VEL_2					1.0 // rad/s
@@ -99,6 +99,7 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 #define DEFAULT_COLLISION_DISTANCE_1	0.002	// distance in m
 #define DEFAULT_COLLISION_DISTANCE_2	0.02	// distance in m
 #define DEFAULT_COLLISION_DISTANCE_3	0.03	// distance in m
+#define DEFAULT_PLANNER_ID				"RRTkConfigDefault"
 
 //! Defines return values for methods and functions
 enum ReturnValue{
@@ -271,8 +272,8 @@ class RtTrajPlanner{
 		//! Id of the position that it'll load in INIT_STATE
 		string init_position_id; 
 		
-		
-		
+		//! planner used by MoveGroup
+		string planner_id_;
 		// The :move_group_interface:`MoveGroup` class can be easily 
 		// setup using just the name
 		// of the group you would like to control and plan for.
