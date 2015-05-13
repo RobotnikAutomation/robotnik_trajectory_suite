@@ -84,13 +84,13 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 
 //! Size of string for logging
 #define DEFAULT_THREAD_DESIRED_HZ		40.0
-#define DEFAULT_T_PLAN					5.0
+#define DEFAULT_T_PLAN					10.0
 #define WATCHDOG_COMMAND				0.1	// Timeout for receiving commands (in velocity mode)
 #define DEFAULT_JOINT_ACCEL				0.1 // Acceleration applied to joints
 #define DEFAULT_JOINT_VEL				0.1 // Velocity applied to joints
 #define MAX_JOINT_VEL					0.1 // Max joint velocity allowed
 #define MAX_JOINT_VEL_CARTESIAN			0.1 // Max joint velocity allowed
-#define MAX_JOINT_VEL_TRAJECTORY		0.2 // Max joint velocity allowed
+#define MAX_JOINT_VEL_TRAJECTORY		0.5 // Max joint velocity allowed
 #define MAX_JOINT_VEL_JOINTBYJOINT		0.2 // Max joint velocity allowed
 #define MAX_LINEAR_VEL					0.06 // m/s
 #define MAX_JOINT_VEL_2					1.0 // rad/s
