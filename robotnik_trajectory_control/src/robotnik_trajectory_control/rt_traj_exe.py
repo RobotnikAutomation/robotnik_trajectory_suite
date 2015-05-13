@@ -715,14 +715,14 @@ class TrajExec:
 						# if the difference is greater than the last cycle or is lower than the error joint pos,  we change the point objective  
 						if diff > i.diff_position:
 							if self.current_follow_traj_goal['next_point_joint'][i.joint_name] == i.getCurrentPoint():
-								rospy.loginfo('joint %s, point %d reached (%.3f). Diff = %.3lf  (last diff = %.3lf)'%(i.joint_name, i.current_point, i.joint_state['position'], 
+								rospy.logdebug('joint %s, point %d reached (%.3f). Diff = %.3lf  (last diff = %.3lf)'%(i.joint_name, i.current_point, i.joint_state['position'], 
 								diff, i.diff_position))
 								#i.nextPoint()
 								self.current_follow_traj_goal['next_point_joint'][i.joint_name] = i.getCurrentPoint() + 1
 						elif diff <= self.joint_lookahead_:
 							#print 'joint %s, point %d: reached'%(i.joint_name, i.current_point)	
 							if self.current_follow_traj_goal['next_point_joint'][i.joint_name] == i.getCurrentPoint():
-								rospy.loginfo('joint %s, point %d reached (%.3f). Diff = %.3lf (error = %.3lf)'%(i.joint_name, i.current_point, i.joint_state['position'],
+								rospy.logdebug('joint %s, point %d reached (%.3f). Diff = %.3lf (error = %.3lf)'%(i.joint_name, i.current_point, i.joint_state['position'],
 								 diff, self.error_joint_position_))
 								#i.nextPoint()
 								self.current_follow_traj_goal['next_point_joint'][i.joint_name] = i.getCurrentPoint() + 1					
@@ -744,7 +744,7 @@ class TrajExec:
 							
 						# look for the end of trajectory
 						if diff > i.diff_position or diff <= self.error_joint_position_:
-							print 'joint %s, end point %d reached (%.3f). Diff = %.3lf, diff_pos = %.3lf'%(i.joint_name, i.current_point, i.joint_state['position'],  diff, i.diff_position)
+							rospy.logdebug('joint %s, end point %d reached (%.3f). Diff = %.3lf, diff_pos = %.3lf'%(i.joint_name, i.current_point, i.joint_state['position'],  diff, i.diff_position))
 							i.finish()
 						else:
 							traj_finish = False
@@ -758,8 +758,7 @@ class TrajExec:
 				for i in self.current_follow_traj_goal['points']:			
 					i.nextPoint()
 					#print 'nextPoint: joint %s, going to position %.3lf at velocity %3lf'%(self.joint_name, self.joint_traj_points.positions[self.current_point], self.joint_traj_points.velocities[self.current_point])
-
-					print 'joint %s, going to point %d (pos = %.3lf, vel = %.3lf)'%(i.joint_name, i.current_point, i.joint_traj_points.positions[i.current_point], i.joint_traj_points.velocities[i.current_point])
+					rospy.logdebug('joint %s, going to point %d (pos = %.3lf, vel = %.3lf)'%(i.joint_name, i.current_point, i.joint_traj_points.positions[i.current_point], i.joint_traj_points.velocities[i.current_point]))
 						
 						
 			# send position and velocity refs to each joint / component
@@ -1042,7 +1041,6 @@ class TrajExec:
 			
 			next_point_joint_traj[new_goal.trajectory.joint_names[i]] = 0
 			
-			#print 'joint %s'%new_goal.trajectory.joint_names[i]
 			if new_goal.trajectory.joint_names[i] in self.free_joints:
 				
 				
@@ -1073,11 +1071,7 @@ class TrajExec:
 				n.joint_traj_points.time_from_start = points.time_from_start
 				n.updateLen()
 				
-				#n.joint_traj_points = new_goal.trajectory.points[i] # desired trajectory
 				
-				#self.joint_state[n.joint_name]['position'] = 2.0
-				#print 'name = %s, current value = %f, points = %s'%(n.joint_name, n.joint_params['value'], n.joint_traj_points)
-				#print 'name = %s, points = %s, vel = %s'%(n.joint_name, n.joint_traj_points.positions,  n.joint_traj_points.velocities)
 				new_traj.append(n)
 			else:
 				rospy.logerr('%s:processNewGoal: joint name %s is not correct'%(self.node_name, new_goal.trajectory.joint_names[i]))
@@ -1087,10 +1081,6 @@ class TrajExec:
 		self.current_follow_traj_goal['finished'] = False
 		self.current_follow_traj_goal['next_point_joint'] = next_point_joint_traj
 		
-
-		
-		#print 'New GOAL processed:'
-		print self.current_follow_traj_goal
 		
 		return 0
 		

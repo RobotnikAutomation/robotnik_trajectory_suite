@@ -592,7 +592,8 @@ void RobotnikTrajectoryPad::ControlLoop(){
 						sendBHandAction(bhand::Service::SET_GRASP_2);
 					}*/
 				// Deadman for WSG50	
-				}else if(vButtons[button_control_wsg50_].IsPressed()){
+				}
+				if(vButtons[button_control_wsg50_].IsPressed()){
 					/*if(vButtons[button_control_wsg50_grasp_].IsReleased()){
 						sendWSG50GraspAction();
 					}
@@ -601,19 +602,19 @@ void RobotnikTrajectoryPad::ControlLoop(){
 					}
 				*/
 					
-				}else{
-						// INCREASE/DECREASE MAX SPEED
-						if(vButtons[button_speed_up_].IsReleased()){
-							current_speed_lvl += 0.1;
-							if(current_speed_lvl > 1.0)
-								current_speed_lvl = 1.0;
-						}
-						if(vButtons[button_speed_down_].IsReleased()){
-							current_speed_lvl -= 0.1;
-							if(current_speed_lvl < 0.0)
-								current_speed_lvl = 0.0;
-						}
 				}
+				// INCREASE/DECREASE MAX SPEED
+				if(vButtons[button_speed_up_].IsReleased()){
+					current_speed_lvl += 0.1;
+					if(current_speed_lvl > 1.0)
+						current_speed_lvl = 1.0;
+				}
+				if(vButtons[button_speed_down_].IsReleased()){
+					current_speed_lvl -= 0.1;
+					if(current_speed_lvl < 0.0)
+						current_speed_lvl = 0.0;
+				}
+				
 				
 			}else if(vButtons[button_dead_man_].IsReleased()){
 				

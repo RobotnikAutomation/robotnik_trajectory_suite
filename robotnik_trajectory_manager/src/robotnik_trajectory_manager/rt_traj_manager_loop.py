@@ -9,7 +9,7 @@ import time
 import sys
 import rospkg
 
-from robotnik_trajectory_msgs.msg import State
+from robotnik_msgs.msg import State
 from robotnik_trajectory_planner.msg import State as PlannerState
 from robotnik_trajectory_planner.msg import Trajectory, PointTraj
 
