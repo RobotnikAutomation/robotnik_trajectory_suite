@@ -27,13 +27,13 @@ if __name__ == '__main__':
 	goal.trajectory.header.stamp = rospy.Time()
 	goal.trajectory.joint_names = ['mico_joint_1', 'mico_joint_2', 'mico_joint_3', 'mico_joint_4', 'mico_joint_5', 'mico_joint_6']
 	tpoint1 = JointTrajectoryPoint()
-	tpoint1.positions = [-1.6554960347361036, -1.6516461690642847, 0.1944244748554111, -1.0983675283814525, 1.679086049355918, 3.40815204236352]		                    
-	tpoint1.velocities = [0.3, 0.1, 0.1, 0.1, 0.1, 0.1]
+	tpoint1.positions = [-0.8229356852782783, -1.6516461690642847, 0.1944244748554111, -1.0983675283814525, 1.679086049355918, 3.40815204236352]
+	tpoint1.velocities = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 	tpoint1.accelerations = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 	tpoint1.time_from_start = rospy.Duration.from_sec(5.0)
 	
 	tpoint2 = JointTrajectoryPoint()
-	tpoint2.positions = [-0.8229356852782783, -1.197347106087562, -0.505311381024976, -1.5505664225225386, 2.2443348001903303, 3.453371851882796]	
+	tpoint2.positions = [-1.6554960347361036, -1.6516461690642847, 0.1944244748554111, -1.0983675283814525, 1.679086049355918, 3.40815204236352]		                    	
 	tpoint2.velocities = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 	tpoint2.accelerations = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 	tpoint2.time_from_start = rospy.Duration.from_sec(5.0)
@@ -49,9 +49,7 @@ if __name__ == '__main__':
 		rospy.loginfo('waiting for result')
 		while not client.wait_for_result(rospy.Duration.from_sec(5.0)) and not rospy.is_shutdown():
 			rospy.loginfo('waiting for result. state = %s'%client.get_state())
-		
-		
-			
+				
 		print 'Result is %s'%client.get_result()
 
 		time.sleep(2.0)		
@@ -65,9 +63,9 @@ if __name__ == '__main__':
 		while not client.wait_for_result(rospy.Duration.from_sec(5.0)) and not rospy.is_shutdown():
 			rospy.loginfo('waiting for result. state = %s'%client.get_state())
 		print 'Result is %s'%client.get_result()
-		
+
 		time.sleep(2.0)
-		
+
 		tpoint1.positions = [-1.6554960347361036, -1.6516461690642847, 0.1944244748554111, -1.0983675283814525, 1.679086049355918, 3.40815204236352]		                    
 		tpoint2.positions = [-0.8229356852782783, -1.197347106087562, -0.505311381024976, -1.5505664225225386, 2.2443348001903303, 3.453371851882796]
 				
@@ -78,6 +76,7 @@ if __name__ == '__main__':
 		while not client.wait_for_result(rospy.Duration.from_sec(5.0)) and not rospy.is_shutdown():
 			rospy.loginfo('waiting for result. state = %s'%client.get_state())
 		print 'Result is %s'%client.get_result()
+
 	# Sends 1 traj and owerwrite it
 	elif option == 2:
 		rospy.loginfo('OPTION 2: sending trajectory 1')
