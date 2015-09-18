@@ -71,6 +71,8 @@ class GripperCommandActionController:
 		## AVAILABLE MODELS
 		if self.model == 'rb1_gripper1':
 			self.gripper = Rb1GripperInterface(self.joints, self.action_service_client)
+		elif self.model == 'rb1_gripper2':
+			self.gripper = Rb1CrabGripperInterface(self.joints, self.action_service_client)
 		elif self.model == 'wsg50_gripper_gazebo':
 			self.gripper = Wsg50GripperGazeboInterface(self.joints	)
 		else:

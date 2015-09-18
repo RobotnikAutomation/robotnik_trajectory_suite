@@ -27,10 +27,12 @@ from control_msgs.msg import *
 from actionlib_msgs.msg import *
 from gripper_interface import StandardGripperInterface
 
+
+
 class Rb1GripperInterface(StandardGripperInterface):
 	"""
 		Class to set the position of the Gripper
-		Moves the joint through a FollowTrajectoryAction
+		Moves the joint through a FollowTrajectoryAction for a parallel two joints gripper
 	"""
 	def __init__(self, joints, action_service):
 		self.joints = joints
@@ -145,3 +147,118 @@ class Rb1GripperInterface(StandardGripperInterface):
 		return [j1, j2]
 		
 		
+		
+		
+		
+		
+class Rb1CrabGripperInterface(StandardGripperInterface):
+	"""
+		Class to set the position of the Gripper
+		Moves the joint through a FollowTrajectoryAction for a one joint model
+	"""
+	def __init__(self, joints, action_service):
+		self.joints = joints
+		self.action_service_name = action_service
+		self.min_opening = rospy.get_param('~min_opening', 0.0)
+		self.min_opening_joint_val_f1 = rospy.get_param('~min_opening_joint_val_f1', 0.0)
+		self.max_opening_joint_val_f1 = rospy.get_param('~max_opening_joint_val_f1', 1.57)
+		self.max_opening = rospy.get_param('~max_opening', 0.10)
+		self.center = rospy.get_param('~center', 0.0)
+
+		self.op_f1 = (self.max_opening - self.min_opening)/2.0
+		self.range_f1 = self.max_opening_joint_val_f1 - self.min_opening_joint_val_f1
+
+		self.as_client = actionlib.SimpleActionClient(self.action_service_name, FollowJointTrajectoryAction)
+
+		if len(self.joints)!= 1:
+			rospy.logerr('Rb1CrabGripperInterface: incorrect number of joints %s'%str(self.joints))
+			exit()
+	
+	def setup(self):
+		"""
+			Setups the component.
+			Tries to connect the action server
+			@return 0 if OK
+			@return -1 if ERROR
+		"""
+		ret  = self.as_client.wait_for_server(timeout=rospy.Duration(2.0))
+		if not ret:
+			rospy.logerr('Rb1CrabGripperInterface: Error waiting for server %s'%self.action_service_name)
+			return -1
+		
+		return 0
+		
+		
+	def setPositionGoal(self, position_goal):
+		"""
+			Sets the position of the gripper
+			@param postion as GripperCommand
+			@return 0 if it's send successfully
+			@return -1 if ERROR		
+		"""
+		desired_position = position_goal.command.position
+		if position_goal.command.position < self.min_opening:
+			desired_position = self.min_opening
+		elif position_goal.command.position > self.max_opening:
+			desired_position = self.max_opening
+		
+		joints = self.convertGripperDistanceToJointValues(desired_position)
+		
+		#print 'Distance in rads = %s'%str(joints)
+		
+		goal = FollowJointTrajectoryGoal()
+		goal.trajectory.header.stamp = rospy.Time()
+		
+		goal.trajectory.joint_names = [self.joints[0]]
+		tpoint1 = JointTrajectoryPoint()
+		tpoint1.positions = [joints[0]]
+		tpoint1.velocities = [0.1]
+		tpoint1.accelerations = [0.1]
+		tpoint1.time_from_start = rospy.Duration.from_sec(5.0)
+		goal.trajectory.points = [tpoint1]
+		
+		# Converts the desired position into a trajectory
+		self.as_client.send_goal(goal)
+		
+		return 0
+		
+		
+	def isGoalReached(self):
+		"""
+			Returns 0 if the position Goal is reached
+			Returns -1 if the position hasn't been reached yet
+			Returns -2 if it has been an error
+		"""
+		
+		#result = self.as_client.get_result()
+		#print 'isGoalReached: Result = %s'%str(result)
+		state = self.as_client.get_state()
+		#print 'isGoalReached: state = %s'%str(state)
+		
+		if state == GoalStatus.LOST or state == GoalStatus.PREEMPTED or state == GoalStatus.ABORTED:
+			return -2
+		if state == GoalStatus.PENDING or state == GoalStatus.ACTIVE:
+			return -1			
+		if state == GoalStatus.SUCCEEDED:
+			return 0
+		
+		return 0	
+		
+		
+	def cancelGoal(self):
+		"""
+			Cancels the current position
+		"""
+		self.as_client.cancel_goal()
+		
+		return 0
+	
+	def convertGripperDistanceToJointValues(self, distance):
+		"""
+			Converts the distance between gripper fingers in values of the joints linked with them
+			@return [j1] as a list of the joint values to reach this distance
+		"""
+		d_2 = distance/2.0
+		j1 = self.min_opening_joint_val_f1 + d_2*(self.range_f1/self.op_f1)
+		
+		return [j1]		
