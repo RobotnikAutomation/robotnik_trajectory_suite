@@ -541,7 +541,7 @@ void RobotnikTrajectoryPad::ControlLoop(){
 				// 
 				// CARTESIAN-EULER CONTROL
 				if(control_type == CARTESIAN_CONTROL){
-					cartesian_msg.x = cartesian_msg.y = cartesian_msg.z = cartesian_msg.pitch = cartesian_msg.roll = 0.0;
+					cartesian_msg.x = cartesian_msg.y = cartesian_msg.z = cartesian_msg.pitch = cartesian_msg.roll = cartesian_msg.yaw = 0.0;
 							
 					// EULER MODE
 					if(vButtons[button_euler_mode_].IsPressed()){
