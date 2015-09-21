@@ -212,7 +212,7 @@ class Rb1CrabGripperInterface(StandardGripperInterface):
 		goal.trajectory.joint_names = [self.joints[0]]
 		tpoint1 = JointTrajectoryPoint()
 		tpoint1.positions = [joints[0]]
-		tpoint1.velocities = [0.1]
+		tpoint1.velocities = [0.2]
 		tpoint1.accelerations = [0.1]
 		tpoint1.time_from_start = rospy.Duration.from_sec(5.0)
 		goal.trajectory.points = [tpoint1]
