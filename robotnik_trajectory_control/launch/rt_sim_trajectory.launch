@@ -4,11 +4,11 @@
 	<!-- Configuration of every interface -->
 	<rosparam command="load" file="$(find robotnik_trajectory_control)/config/device_command_interfaces.yaml" />
 	
-	<arg name="load_robot_description" default="false"/>
-	<arg name="publish_robot_state" default="false"/>
+	<arg name="load_robot_description" default="true"/>
+	<arg name="publish_robot_state" default="true"/>
 
   	<!-- Load universal robotic description format (URDF) -->
-  	<param if="$(arg load_robot_description)" name="robot_description" command="$(find xacro)/xacro.py '$(find robotnik_powerball_basics)/urdf/schunk_lwa4p_alone.urdf.xacro'"/>
+  	<param if="$(arg load_robot_description)" name="robot_description" command="$(find xacro)/xacro.py '$(find robospect_description)/robots/robospect.urdf.xacro'"/>
 
 	<!-- Combine joint values -->
 	<node name="rt_traj_exe" pkg="robotnik_trajectory_control" type="rt_sim_traj_exe.py" output="screen"/>

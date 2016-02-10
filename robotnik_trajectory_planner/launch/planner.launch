@@ -6,9 +6,11 @@
 	<include file="$(find powerball_moveit_config_2)/launch/move_group.launch">
     		<arg name="allow_trajectory_execution" value="true"/>
   	</include-->
+	<arg name="simulation" default="true"/>
 
 	<node name="rt_traj_planner" pkg="robotnik_trajectory_planner" type="robotnik_trajectory_planner_node" output="screen">
-		<rosparam command="load" file="$(find terabot_moveit_config)/config/kinematics.yaml"/>
+		<remap if="$(arg simulation)" from="joint_states" to="/robospect/joint_states"/>
+		<rosparam command="load" file="$(find robospect_moveit_config)/config/kinematics.yaml"/>
 		<rosparam command="load" file="$(find robotnik_trajectory_planner)/config/planner.yaml"/>
 	</node>
 

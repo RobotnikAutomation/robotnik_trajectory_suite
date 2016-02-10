@@ -110,7 +110,7 @@ class DeviceCommandInterface():
 		
 		if len(self.command_topic) > 0:			
 			try:
-				self.command_publisher = rospy.Publisher(self.command_topic, JointState)
+				self.command_publisher = rospy.Publisher(self.command_topic, JointState, queue_size = 10)
 				rospy.loginfo('%s-%s:setup: connecting to topic  %s'%(self.type, self.name, self.command_topic))
 			except ValueError, e:
 				rospy.logerr('%s-%s:setup: Error connecting to topic  %s ->(%s)'%(self.type, self.name, self.command_topic, e))
@@ -182,6 +182,36 @@ class DeviceCommandInterface():
 		self.joint_state.header.stamp = rospy.Time.now()
 		#rospy.loginfo('%s-%s:sendCommand: sending command (pos = %s) to %s'%(self.type, self.name, self.joint_state.position, self.command_topic))	
 		self.command_publisher.publish(joint_state)
+		
+		return 0
+		
+	def sendCommand(self, joint):
+		'''
+			Sends the desired value to a specific joint
+			@param joint as string, name of the joint to send
+			@return: 0 if OK, -1 otherwise
+		'''
+		if not self.initialized:
+			return -1
+		
+		joint_state_msg = JointState()
+		
+		# copy desired values into the joint_state structure	
+		for i in range(len(self.joint_names)):
+			if self.joint_names[i] == joint:
+				self.joint_state.position[i] = self.joint_state_pointer[self.joint_names[i]][0]
+				self.joint_state.velocity[i] = self.joint_state_pointer[self.joint_names[i]][1]
+				self.joint_state.effort[i] = self.joint_state_pointer[self.joint_names[i]][2]
+				joint_state_msg.name = [joint]
+				joint_state_msg.position = [self.joint_state.position[i]]
+				joint_state_msg.velocity = [self.joint_state.velocity[i]]
+				joint_state_msg.effort = [self.joint_state.effort[i]]
+				
+				
+		
+		joint_state_msg.header.stamp = rospy.Time.now()
+		#rospy.loginfo('%s-%s:sendCommand: sending command (pos = %s) to %s'%(self.type, self.name, self.joint_state.position, self.command_topic))	
+		self.command_publisher.publish(joint_state_msg)
 		
 		return 0
 		

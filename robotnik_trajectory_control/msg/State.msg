@@ -1,6 +1,8 @@
 robotnik_msgs/State state
 # Current substate
 string substate
+# current joint controlled
+string current_joint
 # Subcomponents state
 SubcomponentState[] components
 # Controlled joints

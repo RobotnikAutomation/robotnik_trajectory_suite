@@ -230,9 +230,15 @@ class TrajExec:
 		self.msg_state = ControlState()
 		# Timer to publish state
 		self.publish_state_timer = 0.2
+		# Current joint being actuated
+		self.current_joint = ''
 		
 		self.t_publish_state = Timer(self.publish_state_timer, self.publishROSstate)
 		
+		# TEST
+		self.first_joint = 'crane_tip_joint'
+		self.first_finished = False
+		self.joint_priority = False
 		# Dict to save the actions request. It's based on Actions.msg definition
 		# It's set in actionServiceCb
 		'''self.requested_actions = {Actions.PAUSE: False, Actions.CONTINUE: False, Actions.CANCEL: False, Actions.INIT: False, Actions.INIT_ARMS: False, 
@@ -388,7 +394,7 @@ class TrajExec:
 		
 		# Publishers
 		self.joint_state_subscriber = rospy.Subscriber('joint_states', JointState, self.receiveJointStateCb)
-		self._state_publisher = rospy.Publisher('%s/state'%self.node_name, ControlState)
+		self._state_publisher = rospy.Publisher('%s/state'%self.node_name, ControlState, queue_size=10)
 		
 		# Services
 		self._actions_service = rospy.Service('%s/actions'%self.node_name, TrajExecActions, self.actionsServiceCb)
@@ -563,55 +569,6 @@ class TrajExec:
 				rospy.loginfo('%s:InitState: Starting FollowJointTraj action server'%self.node_name)
 				self.follow_traj_action_server.start()
 				self.switchToState(State.STANDBY_STATE)
-		
-		
-		"""
-				# Moving substate
-				self.init_substate = INITIALIZE_SUBCOMPONENTS
-		
-		# Initializes subcomponents		
-		elif self.init_substate == INITIALIZE_SUBCOMPONENTS:
-			# Depending on the signal received it will initialize each component
-			if self.requested_actions[Actions.INIT_ARMS]:
-				#rospy.loginfo('%s:InitState: Inititializing arms'%self.node_name)
-				self.command_interfaces_dict['right_arm'].initialize()
-				self.command_interfaces_dict['left_arm'].initialize()
-				
-				self.requested_actions[Actions.INIT_ARMS] = False
-			
-			if self.requested_actions[Actions.INIT_HEAD]:
-				#rospy.loginfo('%s:InitState: Inititializing head'%self.node_name)
-				self.command_interfaces_dict['head'].initialize()
-				self.requested_actions[Actions.INIT_HEAD] = False
-			
-			if self.requested_actions[Actions.INIT_WAIST]:
-				#rospy.loginfo('%s:InitState: Inititializing waist'%self.node_name)
-				self.command_interfaces_dict['waist'].initialize()
-				self.requested_actions[Actions.INIT_WAIST] = False
-			
-			if self.requested_actions[Actions.INIT_RIGHT_GRIPPER]:
-				#rospy.loginfo('%s:InitState: Inititializing right gripper'%self.node_name)
-				self.command_interfaces_dict['right_gripper'].initialize()
-				self.requested_actions[Actions.INIT_RIGHT_GRIPPER] = False
-			
-			if self.requested_actions[Actions.INIT_LEFT_GRIPPER]:
-				#rospy.loginfo('%s:InitState: Inititializing left gripper'%self.node_name)
-				self.requested_actions[Actions.INIT_LEFT_GRIPPER] = False
-				self.command_interfaces_dict['left_gripper'].initialize()
-				
-			if self.requested_actions[Actions.INIT_FINISHED]:
-				self.requested_actions[Actions.INIT_FINISHED] = False
-				self.switchToState(State.STANDBY_STATE)
-			
-			if self.follow_traj_action_server.is_new_goal_available():
-				#rospy.loginfo('%s:InitState: Received goal while in INIT. Aborted'%self.node_name)
-				goal = self.follow_traj_action_server.accept_new_goal()
-				self.follow_traj_action_server.set_aborted()
-			
-		if self.requested_actions[Actions.RECOVER]:
-			self.requested_actions[Actions.RECOVER] = False
-			self.recoverComponents()
-		"""
 				
 		return
 	
@@ -637,8 +594,8 @@ class TrajExec:
 		if hasattr(self, 'check_joints_movement_table'):
 			if self.check_joints_movement_table.has_key(joint_name):
 				last_diff = self.check_joints_movement_table[joint_name]['diff']
-				
-				if abs(desired_pos - current_pos) > self.error_joint_position_ and last_diff == diff:
+				#rospy.loginfo('joint %s, desired pos = %lf, current_pos = %lf', joint_name, desired_pos, current_pos)
+				if abs(desired_pos - current_pos) > self.error_joint_position_ and abs(last_diff - diff) < 0.001:
 					
 					# Firs time detected
 					if self.check_joints_movement_table[joint_name]['t_last_diff'] is None:
@@ -702,8 +659,8 @@ class TrajExec:
 					# diff between current joint position and desired value
 					diff = abs(i.joint_state['position'] - i.joint_traj_points.positions[i.current_point])
 					# TEST: Checking that the joints are moving	
-					if not self.checkJointsMovement(i.joint_name, i.joint_traj_points.positions[i.current_point], i.joint_state['position'], diff):
-						rospy.logerr('%s:readyState: ERROR executing the trajectory. Joint %s cannot reach the position %.3f at velocity of %.3f rads/s'%(self.node_name, i.joint_name, i.joint_traj_points.positions[i.current_point], i.joint_traj_points.velocities[i.current_point]))
+					if self.current_joint == i.joint_name and not self.checkJointsMovement(i.joint_name, i.joint_traj_points.positions[i.current_point], i.joint_state['position'], diff):
+						rospy.logerr('%s:readyState: ERROR executing the trajectory. Joint %s cannot reach the position %.3f'%(self.node_name, i.joint_name, i.joint_traj_points.positions[i.current_point]))
 						rospy.loginfo('%s:readyState: switching from ACTIVE to CANCEL substate'%self.node_name)
 						self.ready_substate = CANCEL_SUBSTATE
 						return 
@@ -731,12 +688,11 @@ class TrajExec:
 												
 						traj_finish = False
 					else:
-						
 						#print 'joint_state = %.3f'%i.joint_state['position']
 						diff = abs(i.joint_state['position'] - i.joint_traj_points.positions[i.current_point])
 						
 						# TEST: Checking that the joints are moving	
-						if not self.checkJointsMovement(i.joint_name, i.joint_traj_points.positions[i.current_point], i.joint_state['position'], diff):
+						if self.current_joint == i.joint_name and not self.checkJointsMovement(i.joint_name, i.joint_traj_points.positions[i.current_point], i.joint_state['position'], diff):
 							rospy.logerr('%s:readyState: ERROR executing the trajectory. Joint %s cannot reach the position'%(self.node_name, i.joint_name))
 							rospy.loginfo('%s:readyState: switching from ACTIVE to CANCEL substate'%self.node_name)
 							self.ready_substate = CANCEL_SUBSTATE
@@ -744,8 +700,10 @@ class TrajExec:
 							
 						# look for the end of trajectory
 						if diff > i.diff_position or diff <= self.error_joint_position_:
-							rospy.logdebug('joint %s, end point %d reached (%.3f). Diff = %.3lf, diff_pos = %.3lf'%(i.joint_name, i.current_point, i.joint_state['position'],  diff, i.diff_position))
+							rospy.loginfo('joint %s, end point %d reached (%.3f). Diff = %.3lf, diff_pos = %.3lf'%(i.joint_name, i.current_point, i.joint_state['position'],  diff, i.diff_position))
 							i.finish()
+							if i.joint_name == self.first_joint:
+								self.first_finished = True
 						else:
 							traj_finish = False
 			
@@ -783,6 +741,11 @@ class TrajExec:
 			
 			pass
 			
+		# IDLE SUBSTATE
+		elif self.ready_substate == IDLE_SUBSTATE:
+			self.current_joint = ''
+			self.first_finished = False
+			
 		#
 		# CANCEL
 		elif self.ready_substate == CANCEL_SUBSTATE:
@@ -819,6 +782,7 @@ class TrajExec:
 					if self.processNewGoal(goal) != 0:
 						self.ready_substate = CANCEL_SUBSTATE	
 						rospy.logerr('%s:readyState: Error processing new goal in ACTIVE substate. Switching from ACTIVE to CANCEL substate'%self.node_name)
+					self.first_finished = False
 				else:
 					self.ready_substate = CANCEL_SUBSTATE	
 					rospy.loginfo('%s:readyState: preempted requested. Switching from ACTIVE to CANCEL substate'%self.node_name)
@@ -979,7 +943,8 @@ class TrajExec:
 			self.msg_state.substate = self.substateToString(self.init_substate)
 		if self.state == State.READY_STATE:
 			self.msg_state.substate = self.substateToString(self.ready_substate)
-			
+		
+		self.msg_state.current_joint = self.current_joint
 		#Subcomponents state
 		components_array = []
 		for i in self.command_interfaces_dict:
@@ -1050,22 +1015,25 @@ class TrajExec:
 				n.joint_params = self.free_joints[n.joint_name] # joint params of this joint
 				n.joint_traj_points = JointTrajectoryPoint()
 				
-				for points in new_goal.trajectory.points:
-					# Checks that the format of the msg is correct
-					if len(points.positions) != num_of_joints:
-						rospy.logerr('%s:processNewGoal: positions have different length than the number of joints'%self.node_name)	
-						return -1
-					if len(points.velocities) != num_of_joints:
-						rospy.logerr('%s:processNewGoal: velocities have different length than the number of joints'%self.node_name)	
-						return -1
-					if len(points.accelerations) != num_of_joints:
-						rospy.logerr('%s:processNewGoal: accelerations have different length than the number of joints'%self.node_name)	
-						return -1
-					
-					# Saves the related position, vel, acc of this joint and put it together in one array
-					n.joint_traj_points.positions.append(points.positions[i])
-					n.joint_traj_points.velocities.append(abs(points.velocities[i]))
-					n.joint_traj_points.accelerations.append(abs(points.accelerations[i]))
+				# Get the last element
+				# Only saves the final point
+				points = new_goal.trajectory.points[-1]
+				
+				# Checks that the format of the msg is correct
+				if len(points.positions) != num_of_joints:
+					rospy.logerr('%s:processNewGoal: positions have different length than the number of joints'%self.node_name)	
+					return -1
+				#if len(points.velocities) != num_of_joints:
+				#	rospy.logerr('%s:processNewGoal: velocities have different length than the number of joints'%self.node_name)	
+				#	return -1
+				#if len(points.accelerations) != num_of_joints:
+				#	rospy.logerr('%s:processNewGoal: accelerations have different length than the number of joints'%self.node_name)	
+				#	return -1
+				
+				# Saves the related position, vel, acc of this joint and put it together in one array
+				n.joint_traj_points.positions.append(points.positions[i])
+				#n.joint_traj_points.velocities.append(abs(points.velocities[i]))
+				#n.joint_traj_points.accelerations.append(abs(points.accelerations[i]))
 				
 				
 				n.joint_traj_points.time_from_start = points.time_from_start
@@ -1095,97 +1063,50 @@ class TrajExec:
 		
 		# go through all the trajectory points.
 		for point in self.current_follow_traj_goal['points']:
+			
+			sendcommand = False
+			
+			if self.joint_priority:
+				if not self.first_finished:
+					if self.first_joint == point.joint_name:
+						self.current_joint = point.joint_name
+						print 'sending first joint %s'%self.first_joint
+						sendcommand = True
+				else:
+					self.current_joint = point.joint_name
+					sendcommand = True
+			else:
+				sendcommand = True
+							
 			# If it hasn't passed through this point yet
-			if not point.finished:
+			if sendcommand and not point.finished:
 				direction = 0
 				# Only takes in account the joints of this trajectory
 				self.desired_joint_state[point.joint_name]['position'] = point.joint_traj_points.positions[point.current_point]
-				# target pos - current
-				diff_pos = self.desired_joint_state[point.joint_name]['position'] - self.joint_state[point.joint_name]['position']
-				
-				#print 'joint %s: target pos = %.3f, current_pos = %.3f, diff = %.3f'%(point.joint_name, self.desired_joint_state[point.joint_name]['position'], self.joint_state[point.joint_name]['position'], diff_pos)
-				
-				if diff_pos < 0.0:
-					direction = -1.0
-				else:
-					direction = 1.0
 				
 				
-				t = 1.0/self.real_freq
-				a = point.joint_traj_points.accelerations[point.current_point]
-				desired_velocity = direction * point.joint_traj_points.velocities[point.current_point]
-				if desired_velocity == 0.0:
-					desired_velocity = direction * DEFAULT_MIN_JOINT_VEL
+				# Prepares the value to send it to the Controller device
+				interface_name = self.desired_joint_state[point.joint_name]['command_interface']
+				# Mark this interface as active
+				if interface_name not in active_interfaces:
+					active_interfaces.append(interface_name)
 				
-				# ignores the acceleration 
-				if self.ignore_acceleration:
-					self.desired_joint_state[point.joint_name]['velocity'] = desired_velocity	
-				else:
-					# Control of velocity/acceleration
-					diff_velocity = desired_velocity - self.joint_state[point.joint_name]['velocity']
-					# inc_vel = a*t
-					inc_vel = t * a
+				if interface_name is not None:
 					
-					#print 'joint %s, desired_vel = %.4f, current_vel = %.4f, inc_vel = %.4f'%(point.joint_name, desired_velocity, self.joint_state[point.joint_name]['velocity'],inc_vel)
-					if diff_velocity > 0.0:
-						# positive acc
-						# v = v_current + a*t
-						#self.desired_joint_state[point.joint_name]['velocity'] = self.joint_state[point.joint_name]['velocity'] + inc_vel
-						self.desired_joint_state[point.joint_name]['velocity'] = self.desired_joint_state[point.joint_name]['velocity'] + inc_vel
-						if self.desired_joint_state[point.joint_name]['velocity'] - direction*point.joint_traj_points.velocities[point.current_point] > 0.0:
-							self.desired_joint_state[point.joint_name]['velocity'] = desired_velocity
-							#print 'MAX'
-				
-					elif diff_velocity < 0.0:
-						#self.desired_joint_state[point.joint_name]['velocity'] = self.joint_state[point.joint_name]['velocity'] - inc_vel
-						self.desired_joint_state[point.joint_name]['velocity'] = self.desired_joint_state[point.joint_name]['velocity'] - inc_vel
-						if self.desired_joint_state[point.joint_name]['velocity'] - direction*point.joint_traj_points.velocities[point.current_point] < 0.0:
-							self.desired_joint_state[point.joint_name]['velocity'] = desired_velocity
-							#print 'MIN'
-					
+					if self.command_interfaces_dict[interface_name].getState() == State.READY_STATE:
+						self.command_interfaces_dict[interface_name].setDesiredJointValue( point.joint_name, [ self.desired_joint_state[point.joint_name]['position'], self.desired_joint_state[point.joint_name]['velocity'], self.desired_joint_state[point.joint_name]['effort'] ])
+						self.command_interfaces_dict[interface_name].sendCommand( point.joint_name )
+						#rospy.loginfo('%s:sendCommands: Interface %s. sending to joint %s'%(self.node_name, interface_name, point.joint_name))
+						# Only sends a command to one joint every call
+						return 0
 					else:
-						self.desired_joint_state[point.joint_name]['velocity'] = desired_velocity		
-					
-				#print 'joint %s, desired_instant_vel = %.4f'%(point.joint_name, self.desired_joint_state[point.joint_name]['velocity'])
-				'''
-				# NO ACCEL CONTROL
-				if diff_pos < 0.0:
-					self.desired_joint_state[point.joint_name]['velocity'] = -point.joint_traj_points.velocities[point.current_point]
+						rospy.logerr('%s:sendCommands: Interface %s not READY. Cancelling trajectory'%(self.node_name, interface_name))
+					return -1
 				else:
-					self.desired_joint_state[point.joint_name]['velocity'] = point.joint_traj_points.velocities[point.current_point]
-				'''
-					
-				#print '%s, sending point %d [pos = %f, vel = %f]'%(point.joint_name, point.current_point, self.desired_joint_state[point.joint_name]['position'], self.desired_joint_state[point.joint_name]['velocity'])
-			else:
-				#print '%s set zero vel'%point.joint_name
-				self.desired_joint_state[point.joint_name]['velocity'] = 0.0
+					rospy.logerr('%s:sendCommands: Joint %s set to follow a trajectory without any defined command interface'%(self.node_name, point.joint_name))
+					return -1
 				
 				
-			
-			# Prepares the value to send it to the Controller device
-			interface_name = self.desired_joint_state[point.joint_name]['command_interface']
-			# Mark this interface as active
-			if interface_name not in active_interfaces:
-				active_interfaces.append(interface_name)
-			
-			if interface_name is not None:
-				self.command_interfaces_dict[interface_name].setDesiredJointValue( point.joint_name, [ self.desired_joint_state[point.joint_name]['position'], self.desired_joint_state[point.joint_name]['velocity'], self.desired_joint_state[point.joint_name]['effort'] ])
-				#print 'Setting joint %s value of %s'%(point.joint_name, interface_name)
-			else:
-				rospy.logerr('%s:sendCommands: Joint %s set to follow a trajectory without any defined command interface'%(self.node_name, point.joint_name))
-				return -1
-			
-		
-		# Send commands to the active Commands Interfaces of this trajectory
-		for interface_name in active_interfaces:
-			# print 'Sending command to %s interface'%interface_name
-			
-			# Check the state before sending the command
-			if self.command_interfaces_dict[interface_name].getState() == State.READY_STATE:
-				self.command_interfaces_dict[interface_name].sendCommand()
-			else:
-				rospy.logerr('%s:sendCommands: Interface %s not READY. Cancelling trajectory'%(self.node_name, interface_name))
-				return -1
 	
 		return 0
 		
@@ -1257,7 +1178,13 @@ class TrajExec:
 			@param req: Required action
 			@type req: robotnik_trajectory_control/TrajExecActions
 		'''
-		if req.action == Actions.PAUSE:
+		if req.action == 0:
+			self.joint_priority = True
+		else:
+			self.joint_priority = False
+		
+		
+		"""if req.action == Actions.PAUSE:
 			rospy.loginfo('%s:actionsServiceCb: PAUSE action received'%self.node_name)
 			self.requested_actions[Actions.PAUSE] = True
 		elif req.action == Actions.CONTINUE:
@@ -1292,7 +1219,7 @@ class TrajExec:
 			self.requested_actions[Actions.RECOVER] = True
 		else:
 			rospy.loginfo('%s:actionsServiceCb: unknown service'%self.node_name)
-		
+		"""
 		return True
 	
 	

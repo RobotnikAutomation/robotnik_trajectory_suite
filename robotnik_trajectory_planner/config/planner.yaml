@@ -1,5 +1,5 @@
-robot_group: arm
-move_groups: [arm]
+robot_group: vehicle_and_crane
+move_groups: [crane_arm]
 follow_joint_trajectory_topic: /rt_traj_exe/follow_joint_trajectory
 control_state_topic: /rt_traj_exe/state
 control_state_actions_service: /rt_traj_exe/actions

@@ -300,7 +300,7 @@ class RtTrajPlanner{
 		robot_state::RobotStatePtr kinematic_state;
 		robot_state::RobotStatePtr aux_kinematic_state;
 		
-		//! Maps joint_name <-> terabot joint
+		//! Maps joint_name <-> joint_values
 		std::map<std::string, robot_model::JointModelGroup *> groups2joint_model_group;
 		robot_model::JointModelGroup * joint_robot_model_group;
 		
@@ -413,8 +413,6 @@ class RtTrajPlanner{
 		int selectJointStateGroup(string group);
 		//! ROS Service Handler to set current JointStateGroup
 		bool selectGroupSrv(robotnik_trajectory_planner::SelectGroup::Request &req, robotnik_trajectory_planner::SelectGroup::Response &res );
-		//! ROS Service Handler to set the control mode
-		bool setControlModeSrv(robotnik_trajectory_planner::SetControlMode::Request &req, robotnik_trajectory_planner::SetControlMode::Response &res );
 		//! ROS callback handler when receiving JointByJoint msgs
 		void jointByJointCallback(const robotnik_trajectory_planner::JointByJointConstPtr& j);
 		//! ROS callback handler when receiving CartesianEuler msgs
@@ -423,26 +421,19 @@ class RtTrajPlanner{
 		void trajectoryCallback(const robotnik_trajectory_planner::TrajectoryConstPtr& t);
 		//! Checks for collision
 		bool checkCollision(collision_detection::CollisionResult *res, robot_state::RobotStatePtr k_state, int *collision_level);
+		bool checkCollision(collision_detection::CollisionResult *res, robot_state::RobotState &k_state, int *collision_level);
 		//! ROS service to get the joints of a group
 		bool getJointsGroupSrv(robotnik_trajectory_planner::GetJointsGroup::Request &req, robotnik_trajectory_planner::GetJointsGroup::Response &res );
 		//! ROS service to get all the available groups
 		bool getGroupsSrv(robotnik_trajectory_planner::GetGroups::Request &req, robotnik_trajectory_planner::GetGroups::Response &res );
 		//! ROS service to intialize the components 
 		bool initSrv(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res );
-		//! Sends a goal by using a joint vector (ordered correctly)
-		//int sendGoal(vector<double> desired_joints, vector<string> joint_names, double t_plan = 1.0);
 		
 		void controlStateCallback(const robotnik_trajectory_control::StateConstPtr& t);
 		//! Sends an action to the robotnik_trajectory_control component
 		int sendActionToControl(int action);
-		//! Executes the Trajectory Type control
-		int sendTrajectory();
 		//! Executes the jointbyjoint position control
 		int sendJointByJointPosition();
-		//! Executes the jointbyjoint velocity control
-		int sendJointByJointVelocity();
-		//! Executes the jointbyjoint velocity control
-		int sendCartesianEulerVelocity();
 		//! Executes the jointbyjoint position control
 		int sendCartesianEulerPosition();
 		//! Sends an id to the trajectory manager to load a set of joints and values
