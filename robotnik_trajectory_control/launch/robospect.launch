@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!-- Launch for the trajectory simulation -->
+<launch>
+    <arg name="simulation" default="false"/>
+	
+    <!-- Configuration of every interface -->
+    <rosparam command="load" file="$(find robotnik_trajectory_control)/config/robospect_interfaces.yaml" />
+    <!-- Combine joint values -->
+	<node name="rt_traj_exe" pkg="robotnik_trajectory_control" type="rt_traj_exe.py" output="screen">
+		<remap if="$(arg simulation)" from="joint_states" to="/robospect/joint_states"/>
+		<!-- param name="error_joint_position" value="0.009"/ -->
+		<!-- Accepted joint error position to end the trajectory (rads)  -->
+		<param name="error_joint_position" value="0.025"/>
+		<!-- joint distance to change of trajectory point (rads) -->
+		<param name="joint_lookahead" value="0.025"/>
+		<!-- Control frequency  -->
+		<param name="desired_freq" value="10.0"/>
+		<!-- Controlled joints has to update their state within this time window -->
+ 		<param name="joint_read_state_timeout" value="0.5"/>
+ 		<!-- if any joint is not moving within this time window it will cancel the trajectory -->
+		<param name="joint_no_movement_timeout" value="5.0"/>
+		<!-- Do not apply acceleration curve to the joint -->
+		<param name="ignore_acceleration" value="true"/>
+	</node>
+	
+</launch> 
