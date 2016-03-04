@@ -1263,7 +1263,7 @@ class TrajExec:
 				except IndexError, e:
 					rospy.logerr('%s:receiveJointStateCb: velocity index %d out of range: %s'%(self.node_name, i, e))
 				try:
-					self.joint_state[joint_name]['effort'] =  float(msg.effort[i])
+					self.joint_state[joint_name]['effort'] =  0.0 #float(msg.effort[i])
 				except IndexError, e:
 					rospy.logerr('%s:receiveJointStateCb: effort index %d out of range: %s'%(self.node_name, i, e))
 				t_now = time.time()
