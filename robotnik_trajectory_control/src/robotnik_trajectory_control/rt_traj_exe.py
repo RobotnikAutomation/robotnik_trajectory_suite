@@ -201,6 +201,7 @@ class TrajExec:
 		self.joint_no_movement_timeout = args['joint_no_movement_timeout']
 		self.ignore_acceleration = args['ignore_acceleration']
 		self.joint_lookahead_ = args['joint_lookahead']
+		self.min_joint_velocity = args['min_joint_velocity']
 		# Checks value of freq
 		if self.desired_freq <= 0.0 or self.desired_freq > MAX_FREQ:
 			rospy.loginfo('%s::init: Desired freq (%f) is not possible. Setting desired_freq to %f'%(self.node_name,self.desired_freq, DEFAULT_FREQ))
@@ -388,7 +389,7 @@ class TrajExec:
 		
 		# Publishers
 		self.joint_state_subscriber = rospy.Subscriber('joint_states', JointState, self.receiveJointStateCb)
-		self._state_publisher = rospy.Publisher('%s/state'%self.node_name, ControlState)
+		self._state_publisher = rospy.Publisher('%s/state'%self.node_name, ControlState, queue_size = 5)
 		
 		# Services
 		self._actions_service = rospy.Service('%s/actions'%self.node_name, TrajExecActions, self.actionsServiceCb)
@@ -1115,7 +1116,7 @@ class TrajExec:
 				a = point.joint_traj_points.accelerations[point.current_point]
 				desired_velocity = direction * point.joint_traj_points.velocities[point.current_point]
 				if desired_velocity == 0.0:
-					desired_velocity = direction * DEFAULT_MIN_JOINT_VEL
+					desired_velocity = direction * self.min_joint_velocity
 				
 				# ignores the acceleration 
 				if self.ignore_acceleration:
@@ -1386,7 +1387,8 @@ def main():
 	  'joint_read_state_timeout': DEFAULT_JOINT_READ_STATE_TIMEOUT,
 	  'joint_no_movement_timeout': DEFAULT_JOINT_NO_MOVEMENT_TIMEOUT,
 	  'ignore_acceleration': False,
-	  'joint_lookahead': DEFAULT_JOINT_LOOKAHEAD
+	  'joint_lookahead': DEFAULT_JOINT_LOOKAHEAD,
+	  'min_joint_velocity': DEFAULT_MIN_JOINT_VEL
 	}
 	
 	args = {}
