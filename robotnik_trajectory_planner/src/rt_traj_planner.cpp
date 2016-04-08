@@ -701,6 +701,7 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 						
 						trajectory_msgs::JointTrajectory t;
 						t.joint_names = current_group_joints;
+						t.joint_names.pop_back();
 						t.points.push_back(p);
 											
 						control_msgs::FollowJointTrajectoryGoal goal_;
@@ -1580,7 +1581,7 @@ int RtTrajPlanner::rosSetup(){
 		return INITIALIZED;
 	}
 	// Read params
-	pnh.param<std::string>("follow_joint_traj_name", follow_joint_traj_name, "/rt_traj_exe/follow_joint_trajectory/");
+	pnh.param<std::string>("follow_joint_trajectory_topic", follow_joint_traj_name, "/rt_traj_exe/follow_joint_trajectory/");
 	pnh.param<std::string>("robot_group", s_robot_group, "torso");
 	pnh.param<std::string>("control_state_topic", control_state_topic_name, "/rt_traj_exe/state");
 	pnh.param<std::string>("control_state_actions_service", control_state_actions_service_name, "/rt_traj_exe/actions");
