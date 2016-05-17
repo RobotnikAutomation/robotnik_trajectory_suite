@@ -384,6 +384,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 		dpitch = cartesian_euler_msg.msg.pitch;
 		droll = cartesian_euler_msg.msg.roll;
 		dyaw = cartesian_euler_msg.msg.yaw;
+		//ROS_INFO("sendCartesianEulerPosition: x = %lf, y = %lf, z= %lf, pitch = %lf, roll = %lf, yaw = %lf", dx, dy, dz, dpitch, droll, dyaw);
 		
 		if( dx != 0.0 or dy != 0.0 or dz != 0.0 or dpitch != 0.0 or droll != 0.0 or dyaw != 0.0){
 			//ROS_INFO("sendCartesianEulerPosition: 2");
@@ -457,7 +458,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 						for(int i = 0; i < variables;i++){
 							if(current_group_joints[j] == variable_names[i]){
 								target[variable_names[i]] = current_joint_positions[i];
-								//ROS_INFO("%s = %lf", variable_names[i].c_str() , target[variable_names[i]]);
+								ROS_INFO("%s = %lf", variable_names[i].c_str() , target[variable_names[i]]);
 								break;
 							}
 						}
@@ -469,7 +470,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 					}
 					
 					//ROS_INFO("Planning frame = %s", current_move_group->mg->getPlanningFrame().c_str());
-					//current_move_group->mg->setPoseReferenceFrame("/tip_link");
+					current_move_group->mg->setPoseReferenceFrame("/tip_link");
 					//ROS_INFO("Reference frame = %s", current_move_group->mg->getPoseReferenceFrame().c_str());
 					current_move_group->mg->setStartStateToCurrentState();
 					//current_move_group->mg->clearPoseTarget();
