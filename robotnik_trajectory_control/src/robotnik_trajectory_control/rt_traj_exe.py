@@ -388,7 +388,7 @@ class TrajExec:
 		
 		# Publishers
 		self.joint_state_subscriber = rospy.Subscriber('joint_states', JointState, self.receiveJointStateCb)
-		self._state_publisher = rospy.Publisher('%s/state'%self.node_name, ControlState)
+		self._state_publisher = rospy.Publisher('%s/state'%self.node_name, ControlState, queue_size=10)
 		
 		# Services
 		self._actions_service = rospy.Service('%s/actions'%self.node_name, TrajExecActions, self.actionsServiceCb)
