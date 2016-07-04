@@ -323,16 +323,17 @@ void RtTrajPlanner::standbyState(){
  *	\brief Actions performed on ready state
 */
 void RtTrajPlanner::readyState(){
-	
+	int ret = 0;
 	
 	if(control_type == CARTESIAN_EULER){
 			
 		//
 		// CONTROL POSITION
-		sendCartesianEulerPosition();
+		ret = sendCartesianEulerPosition();
 		
-		
-		if(not goal_active)
+		if(ret == -1)
+			switchToState(robotnik_msgs::State::FAILURE_STATE);
+		else if(not goal_active)
 			switchToState(robotnik_msgs::State::STANDBY_STATE);
 	}
 	
@@ -342,9 +343,11 @@ void RtTrajPlanner::readyState(){
 	else if(control_type == JOINTBYJOINT){
 		//
 		// CONTROL POSITION
-		sendJointByJointPosition();	
+		ret = sendJointByJointPosition();	
 		
-		if(not goal_active)
+		if(ret == -1)
+			switchToState(robotnik_msgs::State::FAILURE_STATE);
+		else if(not goal_active)
 			switchToState(robotnik_msgs::State::STANDBY_STATE);
 	}
 	
@@ -432,6 +435,8 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 				//ROS_INFO("sendCartesianEulerPosition: 3 (IK)");
 				if(checkCollision(&collision_result, kinematic_state, &current_collision_level)){
 					ROS_ERROR("%s::readyState: Robot in collision (CARTESIAN-EULER:POSITION)", component_name.c_str());
+					
+					return -1;
 				}else{
 					ROS_INFO("sendCartesianEulerPosition: 4 (NO COLLISION)");
 					// NO-COLLISION
@@ -488,6 +493,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 					
 					if(!success){
 						ROS_ERROR("%s::readyState: Error getting the plan (CARTESIAN:POSITION)", component_name.c_str());
+						return -1;
 					}else{
 						// Sending via action client
 						control_msgs::FollowJointTrajectoryGoal goal_;
@@ -505,6 +511,9 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 				ROS_INFO("%s::readyState: IK NOT FOUND (CARTESIAN-EULER:POSITION)", component_name.c_str());
 				ROS_ERROR("%s::readyState: IK NOT FOUND (CARTESIAN-EULER:POSITION)", component_name.c_str());
 				// TODO: Show a kind of error msg in the state
+				
+				// 
+				return -1;
 			}
 		}
 		
@@ -619,6 +628,7 @@ int RtTrajPlanner::sendJointByJointPosition(){
 		
 		if(checkCollision(&collision_result, k_state, &current_collision_level)){
 			ROS_ERROR("%s::sendJointByJointPosition: Robot in collision (JOINTBYJOINT:POSITION)", component_name.c_str());
+			return -1;
 		}else{
 			// NO-COLLISION
 			current_move_group->mg->setPlanningTime(DEFAULT_T_PLAN);	// TODO: Specify velocity
@@ -628,6 +638,7 @@ int RtTrajPlanner::sendJointByJointPosition(){
 			
 			if(!success){
 				ROS_ERROR("%s::readyState: Error getting the plan (JOINTBYJOINT:POSITION)", component_name.c_str());
+				return -1;
 			}else{
 				// Sending via action client
 				control_msgs::FollowJointTrajectoryGoal goal_;
@@ -670,7 +681,14 @@ void RtTrajPlanner::emergencyState(){
  *	\brief Actions performed on failure state
 */
 void RtTrajPlanner::failureState(){
-
+	
+	ros::Time t_now = ros::Time::now();
+	
+	
+	if((t_now - t_failure_state).toSec() >= TIME_IN_FAILURE){
+		ROS_INFO("%s::failureState: exiting from FAILURE", component_name.c_str());
+		switchToState(robotnik_msgs::State::STANDBY_STATE);
+	}
 }
 
 /*!	\fn void RtTrajPlanner::AllState()
@@ -835,6 +853,11 @@ void RtTrajPlanner::switchToSubstate(int new_substate){
 			//ROS_INFO("%s::switchToSubstate: %s -> %s", component_name.c_str(), getSubstateString(substate_init), getSubstateString(new_substate));	
 			substate_init = new_substate;
 			st.substate = getSubstateString(substate_init);
+		break;
+		case robotnik_msgs::State::FAILURE_STATE:
+			this->cartesian_euler_msg.processed = true;
+			this->joint_by_joint_msg.processed = true;
+			t_failure_state = ros::Time::now();
 		break;
 		default:
 			st.substate = string("");

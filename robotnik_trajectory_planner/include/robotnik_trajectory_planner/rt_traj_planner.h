@@ -100,6 +100,7 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 #define DEFAULT_COLLISION_DISTANCE_2	0.02	// distance in m
 #define DEFAULT_COLLISION_DISTANCE_3	0.03	// distance in m
 #define DEFAULT_PLANNER_ID				"RRTkConfigDefault"
+#define TIME_IN_FAILURE					2	// time (seconds) in Failure before switching to a new state
 
 //! Defines return values for methods and functions
 enum ReturnValue{
@@ -239,6 +240,8 @@ class RtTrajPlanner{
 		
 		//! Saves the time whenever receives control state msg
 		ros::Time t_received_control_state;
+		//! Saves the time when the component moves to failure state
+		ros::Time t_failure_state;
 		// SUBSCRIBERS
 		ros::Subscriber jointbyjoint_subscriber;
 		ros::Subscriber cartesianeuler_subscriber;
