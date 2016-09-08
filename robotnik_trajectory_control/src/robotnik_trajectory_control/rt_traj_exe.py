@@ -245,6 +245,7 @@ class TrajExec:
 		Actions.INIT_HEAD: False, Actions.INIT_WAIST: False, Actions.INIT_RIGHT_GRIPPER: False, Actions.INIT_LEFT_GRIPPER: False, Actions.INIT_FINISHED: False,
 		Actions.RECOVER: False}'''
 		self.requested_actions = {Actions.PAUSE: False, Actions.CONTINUE: False, Actions.CANCEL: False}
+		self.resetCheckJointsMovement()
 			
 	def setup(self):
 		'''
@@ -589,7 +590,6 @@ class TrajExec:
 		
 		
 		#self.check_joints_movement_table = {'joint_xx':{'desired_pos': 1.2, 'current_pos': 1.1, 'diff': 0.1, 't_last_diff': time}}
-		
 		# Check that the structure exists
 		if hasattr(self, 'check_joints_movement_table'):
 			if self.check_joints_movement_table.has_key(joint_name):
@@ -603,7 +603,7 @@ class TrajExec:
 					else:
 					# Check time without variation
 						t_diff = time.time() - self.check_joints_movement_table[joint_name]['t_last_diff']
-						#print 'checking'
+						#print 'checking t diff = %lf'%t_diff
 						if t_diff >= self.joint_no_movement_timeout:
 							rospy.logerr('%s:checkJointsMovement: Following error on joint %s. %.3f secs without variation on position (current = %f, desired = %f)'%(self.node_name, joint_name, t_diff, current_pos, desired_pos))
 							
@@ -648,6 +648,7 @@ class TrajExec:
 			for i in self.current_follow_traj_goal['points']:
 				# check the flag of finished (active when reaching the position)
 				if not i.finished:
+					
 					current_point = i.getCurrentPoint()
 					# Checks that it's receiving the current value of joint states
 					# A delay in the reception of controlled joints is not allowed
@@ -1070,12 +1071,13 @@ class TrajExec:
 				if not self.first_finished:
 					if self.first_joint == point.joint_name:
 						self.current_joint = point.joint_name
-						print 'sending first joint %s'%self.first_joint
+						#print 'sending first joint %s'%self.first_joint
 						sendcommand = True
 				else:
 					self.current_joint = point.joint_name
 					sendcommand = True
 			else:
+				self.current_joint = point.joint_name
 				sendcommand = True
 							
 			# If it hasn't passed through this point yet
@@ -1180,6 +1182,10 @@ class TrajExec:
 		'''
 		if req.action == 0:
 			self.joint_priority = True
+			self.first_joint = 'crane_tip_joint'
+		elif req.action == 2:
+			self.joint_priority = True
+			self.first_joint = 'crane_second_joint'
 		else:
 			self.joint_priority = False
 		

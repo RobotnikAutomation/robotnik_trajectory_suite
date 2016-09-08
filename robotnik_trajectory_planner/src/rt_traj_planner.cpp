@@ -488,6 +488,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 					
 					current_move_group->mg->setPlanningTime(DEFAULT_T_PLAN);	// TODO: Specify velocity
 					current_move_group->mg->setPlannerId(planner_id_);	
+					current_move_group->mg->setNumPlanningAttempts(DEFAULT_N_ATTEMPTS);	
 					// Gets the plan
 					bool success = current_move_group->mg->plan(my_plan);
 					
@@ -522,9 +523,22 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 	actionlib::SimpleClientGoalState st = this->ac_follow_joint_traj->getState();
 	//if(goal_active and (st == actionlib::SimpleClientGoalState::SUCCEEDED or st == actionlib::SimpleClientGoalState::LOST or actionlib::SimpleClientGoalState::PREEMPTED)){
 	if(st != actionlib::SimpleClientGoalState::PENDING and st != actionlib::SimpleClientGoalState::ACTIVE){	
+		bool error = false;
 		ROS_INFO("%s::readyState: Trajectory ended (CARTESIAN-EULER:POSITION)", component_name.c_str());
 		
+		if(st == actionlib::SimpleClientGoalState::SUCCEEDED)
+			ROS_WARN("%s::sendJointByJointPosition: SUCCEEDED", component_name.c_str());
+		else if(st == actionlib::SimpleClientGoalState::PREEMPTED){
+			ROS_WARN("%s::sendJointByJointPosition: PREEMPTED", component_name.c_str());
+			error = true;
+		}else if(st == actionlib::SimpleClientGoalState::LOST){
+			ROS_WARN("%s::sendJointByJointPosition: LOST", component_name.c_str());
+			error = true;
+		}
 		goal_active = false;
+		
+		if(error)
+			return -1;
 	}
 	
 }
@@ -633,6 +647,7 @@ int RtTrajPlanner::sendJointByJointPosition(){
 			// NO-COLLISION
 			current_move_group->mg->setPlanningTime(DEFAULT_T_PLAN);	// TODO: Specify velocity
 			current_move_group->mg->setPlannerId(planner_id_);	
+			current_move_group->mg->setNumPlanningAttempts(DEFAULT_N_ATTEMPTS);	
 			// Gets the plan
 			bool success = current_move_group->mg->plan(my_plan);
 			
@@ -660,9 +675,21 @@ int RtTrajPlanner::sendJointByJointPosition(){
 	actionlib::SimpleClientGoalState st = this->ac_follow_joint_traj->getState();
 	//if(st == actionlib::SimpleClientGoalState::SUCCEEDED or st == actionlib::SimpleClientGoalState::LOST or actionlib::SimpleClientGoalState::PREEMPTED){
 	if(st != actionlib::SimpleClientGoalState::PENDING and st != actionlib::SimpleClientGoalState::ACTIVE){
+		bool error = false;
 		ROS_INFO("%s::sendJointByJointPosition: Trajectory ended (JOINTBYJOINT:POSITION)", component_name.c_str());
-		//switchToState(robotnik_msgs::State::STANDBY_STATE);
+		if(st == actionlib::SimpleClientGoalState::SUCCEEDED)
+			ROS_WARN("%s::sendJointByJointPosition: SUCCEEDED", component_name.c_str());
+		else if(st == actionlib::SimpleClientGoalState::PREEMPTED){
+			ROS_WARN("%s::sendJointByJointPosition: PREEMPTED", component_name.c_str());
+			error = true;
+		}else if(st == actionlib::SimpleClientGoalState::LOST){
+			ROS_WARN("%s::sendJointByJointPosition: LOST", component_name.c_str());
+			error = true;
+		}
 		goal_active = false;
+		
+		if(error)
+			return -1;
 	}
 	
 	return 0;
@@ -836,6 +863,13 @@ void RtTrajPlanner::switchToState(int new_state){
 	previous_state = state;
 	ROS_INFO("%s::SwitchToState: %s -> %s", component_name.c_str(), getStateString(state), getStateString(new_state));	
 	state = new_state;
+	switch(state){
+		case robotnik_msgs::State::FAILURE_STATE:
+			this->cartesian_euler_msg.processed = true;
+			this->joint_by_joint_msg.processed = true;
+			t_failure_state = ros::Time::now();
+		break;
+	}
  
 }
 
@@ -854,11 +888,7 @@ void RtTrajPlanner::switchToSubstate(int new_substate){
 			substate_init = new_substate;
 			st.substate = getSubstateString(substate_init);
 		break;
-		case robotnik_msgs::State::FAILURE_STATE:
-			this->cartesian_euler_msg.processed = true;
-			this->joint_by_joint_msg.processed = true;
-			t_failure_state = ros::Time::now();
-		break;
+		
 		default:
 			st.substate = string("");
 		break;

@@ -85,6 +85,7 @@ typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction>
 //! Size of string for logging
 #define DEFAULT_THREAD_DESIRED_HZ		40.0
 #define DEFAULT_T_PLAN					10.0
+#define DEFAULT_N_ATTEMPTS				3
 #define WATCHDOG_COMMAND				0.1	// Timeout for receiving commands (in velocity mode)
 #define DEFAULT_JOINT_ACCEL				0.1 // Acceleration applied to joints
 #define DEFAULT_JOINT_VEL				0.1 // Velocity applied to joints
