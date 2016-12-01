@@ -1103,14 +1103,11 @@ class TrajExec:
 				self.desired_joint_state[point.joint_name]['position'] = point.joint_traj_points.positions[point.current_point]
 				# target pos - current
 				diff_pos = self.desired_joint_state[point.joint_name]['position'] - self.joint_state[point.joint_name]['position']
-				
-				#print 'joint %s: target pos = %.3f, current_pos = %.3f, diff = %.3f'%(point.joint_name, self.desired_joint_state[point.joint_name]['position'], self.joint_state[point.joint_name]['position'], diff_pos)
-				
+								
 				if diff_pos < 0.0:
 					direction = -1.0
 				else:
 					direction = 1.0
-				
 				
 				t = 1.0/self.real_freq
 				a = point.joint_traj_points.accelerations[point.current_point]
@@ -1146,19 +1143,7 @@ class TrajExec:
 					
 					else:
 						self.desired_joint_state[point.joint_name]['velocity'] = desired_velocity		
-					
-				#print 'joint %s, desired_instant_vel = %.4f'%(point.joint_name, self.desired_joint_state[point.joint_name]['velocity'])
-				'''
-				# NO ACCEL CONTROL
-				if diff_pos < 0.0:
-					self.desired_joint_state[point.joint_name]['velocity'] = -point.joint_traj_points.velocities[point.current_point]
-				else:
-					self.desired_joint_state[point.joint_name]['velocity'] = point.joint_traj_points.velocities[point.current_point]
-				'''
-					
-				#print '%s, sending point %d [pos = %f, vel = %f]'%(point.joint_name, point.current_point, self.desired_joint_state[point.joint_name]['position'], self.desired_joint_state[point.joint_name]['velocity'])
 			else:
-				#print '%s set zero vel'%point.joint_name
 				self.desired_joint_state[point.joint_name]['velocity'] = 0.0
 				
 				
@@ -1171,7 +1156,6 @@ class TrajExec:
 			
 			if interface_name is not None:
 				self.command_interfaces_dict[interface_name].setDesiredJointValue( point.joint_name, [ self.desired_joint_state[point.joint_name]['position'], self.desired_joint_state[point.joint_name]['velocity'], self.desired_joint_state[point.joint_name]['effort'] ])
-				#print 'Setting joint %s value of %s'%(point.joint_name, interface_name)
 			else:
 				rospy.logerr('%s:sendCommands: Joint %s set to follow a trajectory without any defined command interface'%(self.node_name, point.joint_name))
 				return -1
@@ -1210,32 +1194,19 @@ class TrajExec:
 			else:
 				self.desired_joint_state[point.joint_name]['last_update_time'] = None
 				
-		'''
-		for i in self.desired_joint_state:
-			if self.desired_joint_state[i]['velocity'] != 0.0:
-				
-				if self.desired_joint_state[i]['last_update_time'] is not None:
-					t_diff = t_now - self.desired_joint_state[i]['last_update_time']
-					self.joint_state[i]['velocity'] = self.desired_joint_state[i]['velocity']
-					# increments the proportional part of the position coming from velocity * time increment
-					self.joint_state[i]['position'] = self.joint_state[i]['position'] + self.joint_state[i]['velocity'] * t_diff
-					#print 'Increment joint %s to position %f. T diff = %f, velocity = %f'%(i, self.joint_state[i]['position'], t_diff, self.joint_state[i]['velocity'])
-				self.desired_joint_state[i]['last_update_time'] = t_now
-			else:
-				self.desired_joint_state[i]['last_update_time'] = None
-			'''	
-		#print self.joint_state
+		
 	
 	def cancelCurrentTraj(self):
 		'''
 			Cancels the current trajectory 
 		'''
-		rospy.loginfo('%s:cancelCurrentTraj: cancelling current trajectory'%(self.node_name))
+		rospy.logwarn('%s:cancelCurrentTraj: cancelling current trajectory'%(self.node_name))
 		for point in self.current_follow_traj_goal['points']:
 			# Set every position as finished
 			point.finish()
 			# Sets the desired speed to zero
-			self.desired_joint_state[point.joint_name]['velocity'] = 0.0
+			self.desired_joint_state[point.joint_name]['position'] = self.joint_state[point.joint_name]['position']
+			self.desired_joint_state[point.joint_name]['velocity'] = 0.1
 				
 		self.sendCommands()
 		self.resetCheckJointsMovement()
