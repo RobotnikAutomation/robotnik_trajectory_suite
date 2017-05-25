@@ -10,3 +10,5 @@ string selected_joint
 float32 velocity_level
 # Shows if deadman is pressed
 bool deadman_active
+# POSITION, VELOCITY
+string control_mode

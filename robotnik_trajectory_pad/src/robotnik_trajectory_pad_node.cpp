@@ -79,6 +79,9 @@
 #define CARTESIAN_CONTROL			1
 #define JOINTBYJOINT_CONTROL		2
 
+#define POSITION_CONTROL    1
+#define VELOCITY_CONTROL    2
+
 #define MAX_AXIS_VELOCITY			0.1 // m/s
 #define MAX_JOINT_VELOCITY			0.1 // rad/s
 
@@ -182,7 +185,9 @@ private:
 	double desired_freq_;
 	//! Robot control type (CARTESIAN, JOINT BY JOINT)
 	int control_type;
-	
+    //! Robot control mode (POSITION, VELOCITY)
+    int control_mode;
+
 	// TOPICS
 	// PUBLISHER
 	//! It will publish to cartesian command
@@ -279,6 +284,8 @@ RobotnikTrajectoryPad::RobotnikTrajectoryPad():
   pnh_("~")
 {	
 	control_type = CARTESIAN_CONTROL;
+	control_mode = POSITION_CONTROL;
+
 	current_speed_lvl = 0.1;
 	// JOYSTICK CONFIG
 	pnh_.param("num_of_buttons", num_of_buttons_, DEFAULT_NUM_OF_BUTTONS);
@@ -451,6 +458,11 @@ void RobotnikTrajectoryPad::PublishState(){
 	else
 		pad_state.control_type = string("CARTESIAN_EULER");
 	
+	if (control_mode == POSITION_CONTROL)
+	    pad_state.control_mode = string("POSITION");
+	else
+	    pad_state.control_mode = string("VELOCITY");
+	    
 	pad_state.current_group = v_groups[selected_group].name;
 	pad_state.selected_joint = v_groups[selected_group].v_joint_names[v_groups[selected_group].selected_joint];
 	
@@ -522,9 +534,12 @@ void RobotnikTrajectoryPad::ControlLoop(){
 				SetJoint(-1);
 			}
 			
-			// SET CONTROL MODE (ALWAYS VELOCITY)
+			// SET CONTROL MODE
 			if(vButtons[button_set_control_mode_].IsReleased()){
-				SetControlMode(string("VELOCITY"));
+				if(control_mode == POSITION_CONTROL)
+				    SetControlMode(string("VELOCITY"));
+				else
+				    SetControlMode(string("POSITION"));
 			}
 			
 			// Changing internal control type
