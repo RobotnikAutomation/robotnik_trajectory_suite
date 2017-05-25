@@ -298,7 +298,8 @@ void RtTrajPlanner::standbyState(){
 	if(!joint_by_joint_msg.processed  and (t_now - joint_by_joint_msg.t).toSec() <= WATCHDOG_COMMAND ){
 		ROS_INFO("%s::standbyState: Received new JointByJoint message", component_name.c_str());
 		control_type = JOINTBYJOINT;
-		if(control_mode == VELOCITY){
+		//if(control_mode == VELOCITY) // remove if to move only in velocity mode
+		{
 			// Updates auxiliar kinematic state before switching to ready
 			//aux_kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(move_group_robot->getCurrentJointValues());
 			
@@ -312,7 +313,8 @@ void RtTrajPlanner::standbyState(){
 	else if(!cartesian_euler_msg.processed  and (t_now - cartesian_euler_msg.t).toSec() <= WATCHDOG_COMMAND ){
 		ROS_INFO("%s::standbyState: Received new CartesianEuler message", component_name.c_str());
 		control_type = CARTESIAN_EULER;
-		if(control_mode == VELOCITY){
+		//if(control_mode == VELOCITY) // remove if to move only in velocity mode
+		{
 			// Updates auxiliar kinematic state before switching to ready
 			//aux_kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(move_group_robot->getCurrentJointValues());
 			aux_kinematic_state->setJointGroupPositions(groups2joint_model_group[current_move_group->name_group], move_group_robot->getCurrentJointValues());
@@ -503,7 +505,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 							// If there's any other active trajectory, overwrites it
 							this->ac_follow_joint_traj->sendGoal(goal_);
 						}
-						/*// Prepare msg
+						// Prepare msg
 						trajectory_msgs::JointTrajectoryPoint p;
 					  
 						p.positions = current_joint_values;
@@ -517,6 +519,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 						vector<double> accelerations(current_joint_values.size(), DEFAULT_JOINT_ACCEL);
 
 						p.accelerations = accelerations;  
+						p.time_from_start = ros::Duration(0.1);
 						
 						trajectory_msgs::JointTrajectory t;
 						t.joint_names = current_group_joints;
@@ -528,7 +531,7 @@ int RtTrajPlanner::sendCartesianEulerPosition(){
 						goal_active = true;
 							
 						// If there's any other active trajectory, overwrites it
-						this->ac_follow_joint_traj->sendGoal(goal_);*/
+						this->ac_follow_joint_traj->sendGoal(goal_);
 					}		
 					
 				
@@ -620,6 +623,9 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 			//	ROS_ERROR("%s::sendCartesianEulerVelocity: ERROR setting variable values for current kinematic state(CARTESIAN-EULER:VELOCITY)", component_name.c_str());
 			
 			Eigen::Affine3d end_effector_state = aux_kinematic_state->getFrameTransform(current_move_group->mg->getEndEffectorLink().c_str());	
+			
+			//Eigen::Affine3d end_effector_state = aux_kinematic_state->getFrameTransform("support_link");	
+			
 			//Eigen::Affine3d end_effector_state = aux_kinematic_state->getFrameTransform("hand_right_grasp_link");	//hand_right_grasp_link
 			//Eigen::Affine3d end_effector_state = aux_kinematic_state->getLinkState("hand_right_grasp_link")->getGlobalLinkTransform();
 			//joint_state_group_->getRobotState()->getLinkState(this->arm_tcp_link_)->getGlobalLinkTransform();
@@ -688,6 +694,7 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 						vector<double> accelerations(current_joint_values.size(), 1.0);
 
 						p.accelerations = accelerations;  
+		                p.time_from_start = ros::Duration(0.1);
 						
 						//ROS_INFO("VELOCITIES BEFORE");
 						//for(int i = 0; i < p.velocities.size(); i++){	
@@ -701,7 +708,7 @@ int RtTrajPlanner::sendCartesianEulerVelocity(){
 						
 						trajectory_msgs::JointTrajectory t;
 						t.joint_names = current_group_joints;
-						t.joint_names.pop_back();
+
 						t.points.push_back(p);
 											
 						control_msgs::FollowJointTrajectoryGoal goal_;
@@ -897,7 +904,7 @@ int RtTrajPlanner::sendJointByJointVelocity(){
 			std::vector<double> accelerations(current_joint_values.size(), DEFAULT_JOINT_ACCEL);
 
 			p.accelerations = accelerations;  
-			
+			p.time_from_start = ros::Duration(0.1);
 			trajectory_msgs::JointTrajectory t;
 			t.joint_names = current_group_joints;
 			t.points.push_back(p);
@@ -1011,7 +1018,8 @@ int RtTrajPlanner::sendJointByJointPosition(){
 			std::vector<double> accelerations(current_joint_values.size(), DEFAULT_JOINT_ACCEL);
 
 			p.accelerations = accelerations;  
-			
+		    p.time_from_start = ros::Duration(0.1);
+
 			trajectory_msgs::JointTrajectory t;
 			t.joint_names = current_group_joints;
 			t.points.push_back(p);
@@ -1082,8 +1090,7 @@ int RtTrajPlanner::sendTrajectory(){
 			// Gets current joint values from move_group interface
 			current_joint_values = current_move_group->mg->getCurrentJointValues();
 			robot_joint_values = move_group_robot->getCurrentJointValues();
-			current_group_joints = current_move_group->mg->getJoints();
-			
+			current_group_joints = current_move_group->mg->getJointNames();
 			// Updates Kinematic state of the whole robot
 			//if(not kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(robot_joint_values))
 			//	ROS_ERROR("%s::sendTrajectory: ERROR setting variable values for current kinematic state(TRAJECTORY)", component_name.c_str());
@@ -1225,8 +1232,7 @@ void RtTrajPlanner::readyState2(){
 	// Gets current joint values from move_group iface
 	current_joint_values = move_group_robot->getCurrentJointValues();
 	arm_joint_values = current_move_group->mg->getCurrentJointValues();
-	group_variable_joints = move_group_robot->getJoints();
-	
+	group_variable_joints = move_group_robot->getJointNames();
 	//if(not kinematic_state->getJointStateGroup(s_robot_group)->setVariableValues(current_joint_values))
 	//	ROS_ERROR("ERROR setting variable values for jointstategroup");
 	kinematic_state->setVariablePositions(current_joint_values);
@@ -1606,9 +1612,10 @@ int RtTrajPlanner::rosSetup(){
 		mgs.name_group = v_move_groups_name[i];
 		
 		mgs.mg = new moveit::planning_interface::MoveGroup(v_move_groups_name[i]);
+		mgs.mg->setPlannerId("RRTConnectkConfigDefault");
 		mgs.selected_tcp = mgs.mg->getEndEffectorLink();
 		// Saves the list of joint of this groups to avoid calling the function iteratively
-		mgs.joint_names = mgs.mg->getJoints(); 
+		mgs.joint_names = mgs.mg->getJointNames(); 
 		for(int j = 0; j<mgs.joint_names.size();j++){
 			ROS_INFO("joint %s", mgs.joint_names[j].c_str());
 		}
@@ -1616,7 +1623,7 @@ int RtTrajPlanner::rosSetup(){
 	}
 	// Creating one MoveGroup interface the whole model
 	move_group_robot = new moveit::planning_interface::MoveGroup(s_robot_group);
-	vector<string> robot_joints = move_group_robot->getJoints();
+	vector<string> robot_joints = move_group_robot->getJointNames();
 	
 	ROS_INFO("%s::rosSetup: Follow joint trajectory action on %s",component_name.c_str(), follow_joint_traj_name.c_str());
 	ROS_INFO("%s::rosSetup: Robot group %s",component_name.c_str(), s_robot_group.c_str());
