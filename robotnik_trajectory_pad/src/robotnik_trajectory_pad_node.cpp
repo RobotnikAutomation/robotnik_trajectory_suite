@@ -560,16 +560,23 @@ void RobotnikTrajectoryPad::ControlLoop(){
 							
 					// EULER MODE
 					if(vButtons[button_euler_mode_].IsPressed()){
+                        cartesian_msg.x = 0; 
+                        cartesian_msg.y = 0;
+                        cartesian_msg.z = 0;
+
 						cartesian_msg.pitch = max_joint_velocity * current_speed_lvl * fAxes[axis_pitch];
 						cartesian_msg.roll = max_joint_velocity * current_speed_lvl * fAxes[axis_roll];
 						cartesian_msg.yaw = max_joint_velocity * current_speed_lvl * fAxes[axis_yaw];
+
 					}else{
 					// CARTESIAN MODE
 						cartesian_msg.x = max_axis_velocity * current_speed_lvl * fAxes[axis_x];
 						cartesian_msg.y = max_axis_velocity * current_speed_lvl * fAxes[axis_y];
 						cartesian_msg.z = max_axis_velocity * current_speed_lvl * fAxes[axis_z];
-					}
-					
+                        cartesian_msg.pitch = 0.0;
+                        cartesian_msg.roll = 0.0;
+                        cartesian_msg.yaw = 0.0;
+                    }
 					cartesian_pub_.publish(cartesian_msg);
 					
 				}else{
