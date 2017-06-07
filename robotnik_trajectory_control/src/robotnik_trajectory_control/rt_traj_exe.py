@@ -56,6 +56,7 @@ from interfaces.device_command_interface import DeviceCommandInterface
 from interfaces.gazebo_command_interface import GazeboPositionCommandInterface
 #from interfaces.kinova_command_interface import KinovaCommandInterface
 from interfaces.joint_trajectory_interface import JointTrajectoryInterface
+from interfaces.float32_multiarray_command_interface import Float32MultiArrayCommandInterface
 
 #from robotnik_trajectory_msgs.msg import State, Actions
 from robotnik_msgs.msg import State
@@ -326,6 +327,9 @@ class TrajExec:
 			# Kinova arm
 			if type_group == 'kinova':
 				d = KinovaCommandInterface( args = groups[i])
+			# Float32MultiArray interface
+			elif type_group == 'float32_multiarray':
+				d = Float32MultiArrayCommandInterface( args = groups[i])
 			# JointTrajectory interface
 			elif type_group == 'joint_trajectory':
 				d = JointTrajectoryInterface( args = groups[i])
@@ -1344,15 +1348,18 @@ class TrajExec:
 			joint_name = msg.name[i]
 			if self.joint_state.has_key(joint_name):
 				try:
-					self.joint_state[joint_name]['position'] = float(msg.position[i])
+					if len(msg.position) != 0:
+						self.joint_state[joint_name]['position'] = float(msg.position[i])
 				except IndexError, e:
 					rospy.logerr('%s:receiveJointStateCb: position index %d out of range: %s'%(self.node_name, i, e))
 				try:
-					self.joint_state[joint_name]['velocity'] =  float(msg.velocity[i])
+					if len(msg.velocity) != 0:
+						self.joint_state[joint_name]['velocity'] =  float(msg.velocity[i])
 				except IndexError, e:
 					rospy.logerr('%s:receiveJointStateCb: velocity index %d out of range: %s'%(self.node_name, i, e))
 				try:
-					self.joint_state[joint_name]['effort'] =  float(msg.effort[i])
+					if len(msg.effort) != 0:
+						self.joint_state[joint_name]['effort'] =  float(msg.effort[i])
 				except IndexError, e:
 					rospy.logerr('%s:receiveJointStateCb: effort index %d out of range: %s'%(self.node_name, i, e))
 				t_now = time.time()
