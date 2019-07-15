@@ -1,0 +1,6 @@
+<launch>
+    <include file="$(find robotnik_trajectory_manager)/launch/manager.launch"/>
+    <include file="$(find robotnik_trajectory_planner)/launch/planner.launch"/>
+</launch>
+
+

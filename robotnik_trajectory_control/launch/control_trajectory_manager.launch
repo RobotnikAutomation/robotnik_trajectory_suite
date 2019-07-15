@@ -1,10 +1,12 @@
 <?xml version="1.0"?>
 <!-- Launch for the trajectory simulation -->
 <launch>
-	
-	
+    
+    <arg name="config_folder" default="$(find robotnik_trajectory_control)/config"/>
+    <arg name="config_file" default="widowx_interfaces.yaml"/>
+    <arg name="config_file_path" default="$(arg config_folder)/$(arg config_file)"/>
     <!-- Configuration of every interface -->
-    <rosparam command="load" file="$(find robotnik_trajectory_control)/config/terabot_interfaces.yaml" />
+    <rosparam command="load" file="$(arg config_file_path)" />
     <!-- Combine joint values -->
 	<node name="rt_traj_exe" pkg="robotnik_trajectory_control" type="rt_traj_exe.py" output="screen">
 		<!-- remap from="joint_states" to="/rb1_arm/joint_states"/ -->

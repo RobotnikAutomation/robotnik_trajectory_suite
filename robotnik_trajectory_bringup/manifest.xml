@@ -1,0 +1,18 @@
+<package>
+  <description brief="robotnik_trajectory_bringup">
+
+     robotnik_trajectory_bringup
+
+  </description>
+  <author>Juanma</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/robotnik_trajectory_bringup</url>
+  <depend package="robotnik_trajectory_control"/>
+  <depend package="robotnik_trajectory_manager"/>
+  <depend package="robotnik_trajectory_pad"/>
+  <depend package="robotnik_trajectory_planner"/>
+
+</package>
+
+

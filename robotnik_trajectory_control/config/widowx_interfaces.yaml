@@ -1,0 +1,15 @@
+
+# Configs the mapping of joints with real devices
+# Define the different types of interfaces
+types: [gazebo_position]
+
+# Groups for FollowJointTrajectories
+groups: { 
+ arm_j1: { name: arm_j1, type: gazebo_position, joints: [joint_1], command_topic: /joint_1/command},
+ arm_j2: { name: arm_j2, type: gazebo_position, joints: [joint_2], command_topic: /joint_2/command},
+ arm_j3: { name: arm_j3, type: gazebo_position, joints: [joint_3], command_topic: /joint_3/command},
+ arm_j4: { name: arm_j4, type: gazebo_position, joints: [joint_4], command_topic: /joint_4/command},
+ arm_j5: { name: arm_j5, type: gazebo_position, joints: [joint_5], command_topic: /joint_5/command},
+}
+
+

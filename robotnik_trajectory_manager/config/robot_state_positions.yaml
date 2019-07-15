@@ -1,14 +1,14 @@
-a1:
-  group: arm
+pose1:
+  group: widowx
   joints:
-  - terabot_1_joint
-  - terabot_2_joint
-  - terabot_5_joint
-  - terabot_8_joint
-  - terabot_9_joint
+  - joint_1
+  - joint_2
+  - joint_3
+  - joint_4
+  - joint_5
   values:
-  - 1.1818902111164549
-  - -1.3894052302769213
-  - 1.8701486655897845
-  - -1.5997273695210863
-  - -0.9708715559496853
+  - 0.983281685034696
+  - -0.9725438195194965
+  - 0.4003689856381523
+  - 0.6856894121848816
+  - 0.20964404101103765
