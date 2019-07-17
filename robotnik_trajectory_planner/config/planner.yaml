@@ -1,5 +1,5 @@
-robot_group: widowx
-move_groups: [widowx]
+robot_group: widowx_arm
+move_groups: [widowx_arm]
 follow_joint_trajectory_topic: /arm_controller/follow_joint_trajectory
 control_state_topic: ""
 control_state_actions_service: /rt_traj_exe/actions
