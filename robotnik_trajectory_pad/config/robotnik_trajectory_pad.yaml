@@ -21,23 +21,23 @@ max_axis_velocity: 0.1
 max_joint_velocity: 0.1
 
 # AXIS CONFIG
-axis_x: 1
-axis_y: 0
+axis_x: 0
+axis_y: 1
 axis_z: 3
-axis_pitch: 1
-axis_yaw: 0
-axis_roll: 2
+axis_pitch: 0
+axis_yaw: 1
+axis_roll: 3
 axis_move_joint: 1
 
 # GENERAL
-button_speed_up: 12
-button_speed_down: 14
-button_dead_man: 11
-button_euler_mode: 9
-button_change_group_right: 5
-button_change_group_left: 7
-button_increase_joint: 4
-button_decrease_joint: 6
+button_speed_up: 3
+button_speed_down: 1
+button_dead_man: 5
+button_euler_mode: 7
+button_change_group_right: 10
+button_change_group_left: 11
+button_increase_joint: 8
+button_decrease_joint: 9
 
 button_control_bhand: 10
 button_control_bhand_grasp: 13
@@ -53,6 +53,6 @@ button_control_wsg50_release: 15
 # Position / Velocity
 button_set_control_mode: 0
 # Cartesian / Joint by Joint
-button_set_control_type: 3
+button_set_control_type: 2
 
 
