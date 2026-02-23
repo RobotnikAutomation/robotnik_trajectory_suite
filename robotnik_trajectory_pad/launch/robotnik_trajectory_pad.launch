@@ -1,16 +1,22 @@
 <?xml version="1.0"?>
 <launch>
 
- <!-- joy node -->
-  <node name="joy" pkg="joy" type="joy_node" respawn="true">
-    <param name="dev" type="string" value="/dev/input/js0" />
-    <param name="deadzone" value="0.2" />
-    <!-- param name="autorepeat_rate" value="10.0" type="double"/ -->
-    <param name="autorepeat_rate" value="10.0" type="double" />
+
+ <!-- PS4 joy node -->
+  <node name="ps4_joystick" pkg="joy" type="joy_node" respawn="true">
+    <param name="dev" type="string" value="/dev/input/js_base" />
+    <remap from="joy" to="ps4_joy"/>
   </node>
   
-  <node name="robotnik_trajectory_pad_node" pkg="robotnik_trajectory_pad" type="robotnik_trajectory_pad_node" output="screen">
-  	<rosparam command="load" file="$(find robotnik_trajectory_pad)/config/robotnik_trajectory_pad.yaml" />
+  <!-- ITOWA joy node -->
+  <node type="itowa_safe_pad.py" name="itowa_safe_joystick" pkg="itowa_safe_pad" output="screen" respawn="true">
+     <param name="port" value="/dev/ttyUSB_ITOWA" type="string"/>
+     <!--remap from="joy" to="itowa_joy"/-->
+     <param name="joy_topic_name" value="itowa_joy" type="string"/>
+  </node>
+  
+  <node name="robotnik_trajectory_pad_node" pkg="robotnik_trajectory_pad" type="robotnik_trajectory_pad_node" output="screen" respawn="true">
+  	<rosparam command="load" file="$(find robotnik_trajectory_pad)/config/robotnik_trajectory_pad.yaml" /> 
   </node>
   
 </launch>
