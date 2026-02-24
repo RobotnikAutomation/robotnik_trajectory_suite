@@ -11,6 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
 	roscpp
 	rospy
 	std_msgs
+	sensor_msgs
+	std_srvs
+	diagnostic_updater
 	message_generation)
 
 ## System dependencies are found with CMake's conventions
@@ -105,7 +108,14 @@ add_message_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES robotnik_trajectory_pad
-  CATKIN_DEPENDS message_runtime #other_catkin_pkg
+  CATKIN_DEPENDS
+    roscpp
+    rospy
+    std_msgs
+    sensor_msgs
+    std_srvs
+    diagnostic_updater
+    message_runtime
 #  DEPENDS system_lib
 )
 

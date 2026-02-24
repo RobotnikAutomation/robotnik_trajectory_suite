@@ -92,9 +92,9 @@ RobotnikTrajectoryPad::RobotnikTrajectoryPad(ros::NodeHandle& nh, ros::NodeHandl
     mux_sub_ = nh_.subscribe<std_msgs::String>("/mux_joy/selected", 1, &RobotnikTrajectoryPad::muxCallback, this);
 
     // Services
-    srv_set_angle_mode_ = nh_.advertiseService("/kuka_tool_finger_node/set_angle_mode", 
+    srv_set_angle_mode_ = nh_.advertiseService("/kuka_pad/set_angle_mode", 
                                                &RobotnikTrajectoryPad::srvSetAngleMode, this);
-    srv_set_deadman_mode_ = nh_.advertiseService("/kuka_tool_finger_node/set_deadMan_mode", 
+    srv_set_deadman_mode_ = nh_.advertiseService("/kuka_pad/set_deadman_mode", 
                                                  &RobotnikTrajectoryPad::srvSetDeadmanMode, this);
 
     // Diagnostics
