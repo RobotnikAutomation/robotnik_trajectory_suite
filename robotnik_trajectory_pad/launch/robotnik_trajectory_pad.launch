@@ -9,7 +9,7 @@
   <arg name="itowa_port" default="/dev/ttyUSB_ITOWA"/>
   <arg name="itowa_serial_reconnect_interval" default="1.0"/>
   <arg name="itowa_serial_read_timeout" default="0.05"/>
-  <arg name="itowa_frame_timeout" default="0.2"/>
+  <arg name="itowa_frame_timeout" default="10"/>
 
  <!-- PS4 joy node -->
   <group if="$(arg launch_ps4_joystick)">

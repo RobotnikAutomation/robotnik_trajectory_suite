@@ -4,7 +4,7 @@ num_of_buttons: 15
 axis_linear_x: 0
 axis_linear_y: 1
 axis_angular: 2
-axis_linear_z: 3
+axis_linear_z: 5
 scale_linear: 1.25
 scale_angular: 0.5
 scale_linear_z: 20.0 
